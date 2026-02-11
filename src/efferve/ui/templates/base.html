@@ -82,6 +82,47 @@
         .filter-tabs a.active { color: var(--accent); border-color: var(--accent); background: rgba(108,123,255,0.1); }
         .empty-state { color: var(--text-muted); text-align: center; padding: 3rem 1rem; }
         .signal-bar { display: inline-block; width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+        /* Form styles */
+        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+        input[type="text"], input[type="password"], input[type="number"], input[type="url"] {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+        input:focus { outline: none; border-color: var(--accent); }
+        .form-group { margin-bottom: 1rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:hover { border-color: var(--text-muted); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn-primary:hover { opacity: 0.9; }
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline; }
+        .htmx-request.htmx-indicator { display: inline; }
+        .test-result { margin-top: 0.5rem; font-size: 0.85rem; }
+        .test-success { color: var(--green); }
+        .test-failure { color: var(--red); }
+        .card + .card { margin-top: 1rem; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+        .card-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; }
     </style>
 </head>
 <body>
@@ -89,6 +130,7 @@
         <span class="brand">Efferve</span>
         <a href="/" {% if request.url.path == "/" %}class="active"{% endif %}>Dashboard</a>
         <a href="/devices" {% if request.url.path == "/devices" %}class="active"{% endif %}>Devices</a>
+        <a href="/setup" {% if request.url.path == "/setup" %}class="active"{% endif %}>Setup</a>
     </nav>
     <main>
         {% block content %}{% endblock %}

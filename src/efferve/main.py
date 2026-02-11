@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlmodel import Session
 
-from efferve.config import settings
+from efferve.config import Settings, load_config, settings
 from efferve.database import engine, init_db
 from efferve.registry.store import reclassify_device, upsert_device
 from efferve.sniffer.base import BaseSniffer, BeaconEvent
@@ -16,37 +16,39 @@ logging.basicConfig(level=settings.log_level.upper())
 logger = logging.getLogger(__name__)
 
 
-def _create_sniffer(mode: str) -> BaseSniffer | None:
+def _create_sniffer(mode: str, cfg: Settings) -> BaseSniffer | None:
     """Factory: instantiate the configured sniffer backend."""
     if mode == "ruckus":
         from efferve.sniffer.ruckus import RuckusSniffer
 
-        assert settings.ruckus_host, "EFFERVE_RUCKUS_HOST is required"
-        assert settings.ruckus_username, "EFFERVE_RUCKUS_USERNAME is required"
-        assert settings.ruckus_password, "EFFERVE_RUCKUS_PASSWORD is required"
+        if not cfg.ruckus_host or not cfg.ruckus_username or not cfg.ruckus_password:
+            logger.warning("Ruckus mode selected but credentials not configured")
+            return None
         return RuckusSniffer(
-            host=settings.ruckus_host,
-            username=settings.ruckus_username,
-            password=settings.ruckus_password,
-            poll_interval=settings.poll_interval,
+            host=cfg.ruckus_host,
+            username=cfg.ruckus_username,
+            password=cfg.ruckus_password,
+            poll_interval=cfg.poll_interval,
         )
     if mode == "opnsense":
         from efferve.sniffer.opnsense import OpnsenseSniffer
 
-        assert settings.opnsense_url, "EFFERVE_OPNSENSE_URL is required"
-        assert settings.opnsense_api_key, "EFFERVE_OPNSENSE_API_KEY is required"
-        assert settings.opnsense_api_secret, "EFFERVE_OPNSENSE_API_SECRET is required"
+        if not cfg.opnsense_url or not cfg.opnsense_api_key or not cfg.opnsense_api_secret:
+            logger.warning("OPNsense mode selected but credentials not configured")
+            return None
         return OpnsenseSniffer(
-            url=settings.opnsense_url,
-            api_key=settings.opnsense_api_key,
-            api_secret=settings.opnsense_api_secret,
-            poll_interval=settings.poll_interval,
+            url=cfg.opnsense_url,
+            api_key=cfg.opnsense_api_key,
+            api_secret=cfg.opnsense_api_secret,
+            poll_interval=cfg.poll_interval,
         )
     if mode == "monitor":
         from efferve.sniffer.monitor import MonitorSniffer
 
-        assert settings.wifi_interface, "EFFERVE_WIFI_INTERFACE is required"
-        return MonitorSniffer(interface=settings.wifi_interface)
+        if not cfg.wifi_interface:
+            logger.warning("Monitor mode selected but wifi_interface not configured")
+            return None
+        return MonitorSniffer(interface=cfg.wifi_interface)
     if mode == "mock":
         from efferve.sniffer.mock import MockSniffer
 
@@ -67,24 +69,40 @@ def _handle_beacon_event(event: BeaconEvent) -> None:
         logger.exception("Error handling beacon event for %s", event.mac_address)
 
 
+async def _start_sniffer(app: FastAPI) -> None:
+    """Start the sniffer with current configuration."""
+    cfg = load_config()
+    sniffer = _create_sniffer(cfg.sniffer_mode, cfg)
+    if sniffer:
+        sniffer.on_event(_handle_beacon_event)
+        await sniffer.start()
+        logger.info("Sniffer started (mode=%s)", cfg.sniffer_mode)
+    else:
+        logger.info("No sniffer configured (mode=%s)", cfg.sniffer_mode)
+    app.state.sniffer = sniffer
+
+
+async def restart_sniffer(app: FastAPI) -> None:
+    """Restart the sniffer with fresh configuration."""
+    if hasattr(app.state, "sniffer") and app.state.sniffer:
+        await app.state.sniffer.stop()
+        logger.info("Stopped existing sniffer")
+    await _start_sniffer(app)
+    logger.info("Sniffer restarted")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application startup/shutdown lifecycle."""
     init_db()
     logger.info("Database initialized")
 
-    sniffer = _create_sniffer(settings.sniffer_mode)
-    if sniffer:
-        sniffer.on_event(_handle_beacon_event)
-        await sniffer.start()
-        logger.info("Sniffer started (mode=%s)", settings.sniffer_mode)
-    else:
-        logger.info("No sniffer configured (mode=%s)", settings.sniffer_mode)
+    await _start_sniffer(app)
 
     yield
 
-    if sniffer:
-        await sniffer.stop()
+    if hasattr(app.state, "sniffer") and app.state.sniffer:
+        await app.state.sniffer.stop()
         logger.info("Sniffer stopped")
 
 

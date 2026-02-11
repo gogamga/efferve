@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Setup — Efferve{% endblock %}
+{% block content %}
+<h1>Setup</h1>
+
+<form id="setup-form">
+    <!-- Ruckus Card -->
+    <div class="card">
+        <h2>Ruckus Unleashed</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">
+            Wireless AP for WiFi client detection via probe requests.
+        </p>
+        <div class="form-group">
+            <label for="ruckus_host">Host</label>
+            <input type="text" id="ruckus_host" name="ruckus_host"
+                   value="{{ config.ruckus_host or '' }}" placeholder="192.168.1.1">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ruckus_username">Username</label>
+                <input type="text" id="ruckus_username" name="ruckus_username"
+                       value="{{ config.ruckus_username or '' }}" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label for="ruckus_password">Password</label>
+                <input type="password" id="ruckus_password" name="ruckus_password"
+                       value="{{ config.ruckus_password or '' }}">
+            </div>
+        </div>
+        <div class="card-actions">
+            <button type="button" class="btn"
+                    hx-post="/setup/test/ruckus"
+                    hx-include="#ruckus_host, #ruckus_username, #ruckus_password"
+                    hx-target="#ruckus-result"
+                    hx-indicator="#ruckus-spinner">
+                Test Connection
+            </button>
+            <span id="ruckus-spinner" class="htmx-indicator">Testing...</span>
+            <span id="ruckus-result"></span>
+        </div>
+    </div>
+
+    <!-- OPNsense Card -->
+    <div class="card">
+        <h2>OPNsense</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">
+            Firewall/router for DHCP lease monitoring and wired device detection.
+        </p>
+        <div class="form-group">
+            <label for="opnsense_url">URL</label>
+            <input type="text" id="opnsense_url" name="opnsense_url"
+                   value="{{ config.opnsense_url or '' }}" placeholder="https://192.168.1.1">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="opnsense_api_key">API Key</label>
+                <input type="text" id="opnsense_api_key" name="opnsense_api_key"
+                       value="{{ config.opnsense_api_key or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="opnsense_api_secret">API Secret</label>
+                <input type="password" id="opnsense_api_secret" name="opnsense_api_secret"
+                       value="{{ config.opnsense_api_secret or '' }}">
+            </div>
+        </div>
+        <div class="card-actions">
+            <button type="button" class="btn"
+                    hx-post="/setup/test/opnsense"
+                    hx-include="#opnsense_url, #opnsense_api_key, #opnsense_api_secret"
+                    hx-target="#opnsense-result"
+                    hx-indicator="#opnsense-spinner">
+                Test Connection
+            </button>
+            <span id="opnsense-spinner" class="htmx-indicator">Testing...</span>
+            <span id="opnsense-result"></span>
+        </div>
+    </div>
+
+    <!-- Polling Settings Card -->
+    <div class="card">
+        <h2>Polling</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="poll_interval">Poll Interval (seconds)</label>
+                <input type="number" id="poll_interval" name="poll_interval"
+                       value="{{ config.poll_interval }}" min="5" max="300">
+            </div>
+            <div class="form-group">
+                <label for="presence_grace_period">Grace Period (seconds)</label>
+                <input type="number" id="presence_grace_period" name="presence_grace_period"
+                       value="{{ config.presence_grace_period }}" min="30" max="3600">
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary"
+                hx-post="/setup/save"
+                hx-include="#setup-form"
+                hx-indicator="#save-spinner">
+            Save &amp; Start
+        </button>
+        <span id="save-spinner" class="htmx-indicator" style="margin-left: 0.75rem;">Saving...</span>
+    </div>
+</form>
+{% endblock %}

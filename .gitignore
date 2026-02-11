@@ -28,6 +28,7 @@ env/
 data/*.db
 data/*.sqlite
 data/*.log
+data/*.json
 
 # OS
 .DS_Store
