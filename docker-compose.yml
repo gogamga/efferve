@@ -1,0 +1,15 @@
+services:
+  efferve:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - EFFERVE_DB_PATH=/app/data/efferve.db
+      - EFFERVE_LOG_LEVEL=info
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    restart: unless-stopped
