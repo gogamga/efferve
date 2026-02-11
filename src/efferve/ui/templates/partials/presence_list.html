@@ -1,0 +1,30 @@
+<div class="card stat" style="margin-bottom: 1rem;">
+    <div class="stat-value">{{ present_count }}</div>
+    <div class="stat-label">devices present</div>
+</div>
+{% if devices %}
+<div class="device-grid">
+    {% for device in devices %}
+    <div class="card">
+        <strong>{{ device.display_name or device.hostname or device.vendor or device.mac_address }}</strong>
+        <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">
+            {{ device.mac_address }}
+        </div>
+        <div style="margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span class="badge badge-{{ device.classification.value }}">{{ device.classification.value }}</span>
+            {% if device.signal_strength and device.signal_strength != 0 %}
+            <span class="signal-bar" style="color: var(--text-muted); font-size: 0.8rem;">{{ device.signal_strength }} dBm</span>
+            {% endif %}
+        </div>
+        {% if device.ap_name or device.ssid %}
+        <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.35rem;">
+            {% if device.ssid %}{{ device.ssid }}{% endif %}
+            {% if device.ap_name %} &middot; {{ device.ap_name }}{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No devices currently present.</div>
+{% endif %}

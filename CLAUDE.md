@@ -91,3 +91,4 @@ string is the only change needed for Postgres migration.
 - Don't use async SQLAlchemy unless we hit a concrete performance wall.
 - Don't hardcode WiFi interface names or router credentials anywhere.
 - Don't store raw packet captures in the database — only parsed BeaconEvents.
+- Don’t push any code to a public repository.

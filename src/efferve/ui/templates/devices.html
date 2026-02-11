@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Devices - Efferve{% endblock %}
+{% block content %}
+<h1>Devices</h1>
+<div class="filter-tabs">
+    <a href="/devices" {% if active_filter == "all" %}class="active"{% endif %}>All</a>
+    <a href="/devices?classification=resident" {% if active_filter == "resident" %}class="active"{% endif %}>Resident</a>
+    <a href="/devices?classification=frequent" {% if active_filter == "frequent" %}class="active"{% endif %}>Frequent</a>
+    <a href="/devices?classification=passerby" {% if active_filter == "passerby" %}class="active"{% endif %}>Passerby</a>
+    <a href="/devices?classification=unknown" {% if active_filter == "unknown" %}class="active"{% endif %}>Unknown</a>
+</div>
+<div class="card">
+    <div id="device-table-area" hx-get="/partials/device-table?classification={{ active_filter if active_filter != 'all' else '' }}" hx-trigger="every 10s" hx-swap="innerHTML">
+        {% include "partials/device_table.html" %}
+    </div>
+</div>
+{% endblock %}

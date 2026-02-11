@@ -1,0 +1,30 @@
+{% if devices %}
+<table>
+    <thead>
+        <tr>
+            <th>Device</th>
+            <th>MAC</th>
+            <th>Vendor</th>
+            <th>Signal</th>
+            <th>Visits</th>
+            <th>Classification</th>
+            <th>Last Seen</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for device in devices %}
+        <tr>
+            <td>{{ device.display_name or device.hostname or "—" }}</td>
+            <td style="font-family: monospace; font-size: 0.85rem;">{{ device.mac_address }}</td>
+            <td>{{ device.vendor or "—" }}</td>
+            <td class="signal-bar">{% if device.signal_strength and device.signal_strength != 0 %}{{ device.signal_strength }}{% else %}—{% endif %}</td>
+            <td>{{ device.visit_count }}</td>
+            <td><span class="badge badge-{{ device.classification.value }}">{{ device.classification.value }}</span></td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ device.last_seen.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">No devices found.</div>
+{% endif %}

@@ -14,14 +14,25 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "info"
 
+    # Sniffer mode: "ruckus", "opnsense", "monitor", "mock", "none"
+    sniffer_mode: str = "none"
+
     # WiFi Sniffer — Monitor Mode
     wifi_interface: str | None = None
 
-    # WiFi Sniffer — Router API
-    router_url: str | None = None
-    router_user: str | None = None
-    router_password: str | None = None
-    router_type: str | None = None  # openwrt, unifi, mikrotik
+    # Ruckus Unleashed
+    ruckus_host: str | None = None
+    ruckus_username: str | None = None
+    ruckus_password: str | None = None
+
+    # OPNsense
+    opnsense_url: str | None = None
+    opnsense_api_key: str | None = None
+    opnsense_api_secret: str | None = None
+
+    # Polling
+    poll_interval: int = 30  # seconds between polls
+    presence_grace_period: int = 180  # seconds before marking device "away"
 
     # Alerts
     webhook_url: str | None = None
