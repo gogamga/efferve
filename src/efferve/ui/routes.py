@@ -11,7 +11,7 @@ from efferve.config import load_config, save_config, settings
 from efferve.database import get_session
 from efferve.registry.models import DeviceClassification
 from efferve.registry.store import get_all_devices, get_present_devices
-from efferve.sniffer.test_connection import test_opnsense, test_ruckus
+from efferve.sniffer.test_connection import test_glinet, test_opnsense, test_ruckus
 
 _template_dir = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(_template_dir))
@@ -118,6 +118,20 @@ async def test_opnsense_connection(
     )
 
 
+@router.post("/setup/test/glinet", response_class=HTMLResponse)
+async def test_glinet_connection(
+    request: Request,
+    glinet_host: str = Form(""),
+    glinet_username: str = Form("root"),
+    glinet_password: str = Form(""),
+) -> HTMLResponse:
+    result = await test_glinet(glinet_host, glinet_username, glinet_password)
+    return templates.TemplateResponse(
+        "partials/connection_result.html",
+        {"request": request, "success": result.success, "message": result.message},
+    )
+
+
 @router.post("/setup/save")
 async def save_setup(
     request: Request,
@@ -127,27 +141,38 @@ async def save_setup(
     opnsense_url: str = Form(""),
     opnsense_api_key: str = Form(""),
     opnsense_api_secret: str = Form(""),
+    glinet_host: str = Form(""),
+    glinet_username: str = Form("root"),
+    glinet_password: str = Form(""),
+    glinet_wifi_interface: str = Form("wlan0"),
+    glinet_monitor_interface: str = Form("wlan0mon"),
     poll_interval: int = Form(30),
     presence_grace_period: int = Form(180),
 ) -> Response:
     from efferve.main import restart_sniffer
 
-    # Build sniffer_mode from which backends have credentials
-    modes = []
+    # Build sniffer_modes from all backends with credentials
+    modes: list[str] = []
     if ruckus_host and ruckus_username and ruckus_password:
         modes.append("ruckus")
     if opnsense_url and opnsense_api_key and opnsense_api_secret:
         modes.append("opnsense")
-    sniffer_mode = modes[0] if len(modes) == 1 else ("ruckus" if "ruckus" in modes else "none")
+    if glinet_host and glinet_password:
+        modes.append("glinet")
 
     values = {
-        "sniffer_mode": sniffer_mode,
+        "sniffer_modes": modes,
         "ruckus_host": ruckus_host or None,
         "ruckus_username": ruckus_username or None,
         "ruckus_password": ruckus_password or None,
         "opnsense_url": opnsense_url or None,
         "opnsense_api_key": opnsense_api_key or None,
         "opnsense_api_secret": opnsense_api_secret or None,
+        "glinet_host": glinet_host or None,
+        "glinet_username": glinet_username or None,
+        "glinet_password": glinet_password or None,
+        "glinet_wifi_interface": glinet_wifi_interface,
+        "glinet_monitor_interface": glinet_monitor_interface,
         "poll_interval": poll_interval,
         "presence_grace_period": presence_grace_period,
     }

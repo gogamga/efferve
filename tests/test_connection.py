@@ -1,11 +1,11 @@
 """Tests for connection test utilities."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+import sys
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import httpx
 import pytest
 
-from efferve.sniffer.test_connection import ConnectionResult
 from efferve.sniffer import test_connection as tc
 
 
@@ -80,3 +80,55 @@ class TestOPNsenseConnection:
         assert result.success is False
         assert "Connection refused" in result.message
         assert result.device_count is None
+
+
+class TestGlinetConnection:
+    @pytest.fixture(autouse=True)
+    def _mock_asyncssh(self):
+        mock_mod = MagicMock()
+        sys.modules["asyncssh"] = mock_mod
+        yield mock_mod
+        sys.modules.pop("asyncssh", None)
+
+    @pytest.mark.asyncio
+    async def test_success(self, _mock_asyncssh) -> None:
+        conn = AsyncMock()
+        conn.run = AsyncMock(
+            return_value=Mock(
+                stdout="Interface wlan0\n\tifindex 3\n\ttype managed",
+                exit_status=0,
+            )
+        )
+        conn.__aenter__ = AsyncMock(return_value=conn)
+        conn.__aexit__ = AsyncMock(return_value=None)
+
+        _mock_asyncssh.connect = MagicMock(return_value=conn)
+
+        result = await tc.test_glinet("192.168.1.47", "root", "password")
+        assert result.success is True
+        assert "SSH access verified" in result.message
+
+    @pytest.mark.asyncio
+    async def test_failure(self, _mock_asyncssh) -> None:
+        _mock_asyncssh.connect = MagicMock(
+            side_effect=ConnectionError("Connection refused")
+        )
+
+        result = await tc.test_glinet("192.168.1.47", "root", "wrong")
+        assert result.success is False
+        assert "Connection refused" in result.message
+
+    @pytest.mark.asyncio
+    async def test_no_wifi_interfaces(self, _mock_asyncssh) -> None:
+        conn = AsyncMock()
+        conn.run = AsyncMock(
+            return_value=Mock(stdout="", exit_status=0)
+        )
+        conn.__aenter__ = AsyncMock(return_value=conn)
+        conn.__aexit__ = AsyncMock(return_value=None)
+
+        _mock_asyncssh.connect = MagicMock(return_value=conn)
+
+        result = await tc.test_glinet("192.168.1.47", "root", "password")
+        assert result.success is False
+        assert "no WiFi interfaces" in result.message

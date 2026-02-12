@@ -51,6 +51,11 @@ class TestSaveConfig:
                     "opnsense_url": "",
                     "opnsense_api_key": "",
                     "opnsense_api_secret": "",
+                    "glinet_host": "",
+                    "glinet_username": "root",
+                    "glinet_password": "",
+                    "glinet_wifi_interface": "wlan0",
+                    "glinet_monitor_interface": "wlan0mon",
                     "poll_interval": "15",
                     "presence_grace_period": "120",
                 },
@@ -59,7 +64,7 @@ class TestSaveConfig:
         assert resp.headers.get("HX-Redirect") == "/"
         saved = json.loads(config_file.read_text())
         assert saved["ruckus_host"] == "192.168.1.100"
-        assert saved["sniffer_mode"] == "ruckus"
+        assert saved["sniffer_modes"] == ["ruckus"]
         assert saved["poll_interval"] == 15
 
     def test_save_partial_merge(self, client: TestClient, config_file: Path) -> None:
@@ -81,6 +86,11 @@ class TestSaveConfig:
                     "opnsense_url": "https://fw.local",
                     "opnsense_api_key": "key123",
                     "opnsense_api_secret": "secret456",
+                    "glinet_host": "",
+                    "glinet_username": "root",
+                    "glinet_password": "",
+                    "glinet_wifi_interface": "wlan0",
+                    "glinet_monitor_interface": "wlan0mon",
                     "poll_interval": "30",
                     "presence_grace_period": "180",
                 },
@@ -88,8 +98,8 @@ class TestSaveConfig:
         saved = json.loads(config_file.read_text())
         # OPNsense values saved
         assert saved["opnsense_url"] == "https://fw.local"
-        # sniffer_mode should be opnsense (only opnsense has creds now)
-        assert saved["sniffer_mode"] == "opnsense"
+        # sniffer_modes should contain only opnsense (only opnsense has creds now)
+        assert saved["sniffer_modes"] == ["opnsense"]
 
     def test_save_restarts_sniffer(self, client: TestClient, config_file: Path) -> None:
         with patch("efferve.main.restart_sniffer", new_callable=AsyncMock) as mock_restart:
@@ -102,6 +112,11 @@ class TestSaveConfig:
                     "opnsense_url": "",
                     "opnsense_api_key": "",
                     "opnsense_api_secret": "",
+                    "glinet_host": "",
+                    "glinet_username": "root",
+                    "glinet_password": "",
+                    "glinet_wifi_interface": "wlan0",
+                    "glinet_monitor_interface": "wlan0mon",
                     "poll_interval": "30",
                     "presence_grace_period": "180",
                 },

@@ -27,6 +27,9 @@ class OpnsenseSniffer(BaseSniffer):
         api_secret: str,
         poll_interval: int = 30,
     ) -> None:
+        # OPNsense requires HTTPS; upgrade if user entered http://
+        if url.startswith("http://"):
+            url = "https://" + url[7:]
         self.url = url.rstrip("/")
         self.api_key = api_key
         self.api_secret = api_secret

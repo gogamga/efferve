@@ -76,6 +76,56 @@
         </div>
     </div>
 
+    <!-- GL.iNet Monitor Card -->
+    <div class="card">
+        <h2>GL.iNet Remote Monitor (Peek)</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">
+            OpenWrt router in monitor mode for passive WiFi probe request capture via SSH.
+        </p>
+        <div class="form-group">
+            <label for="glinet_host">Host</label>
+            <input type="text" id="glinet_host" name="glinet_host"
+                   value="{{ config.glinet_host or '' }}" placeholder="192.168.1.47">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="glinet_username">SSH Username</label>
+                <input type="text" id="glinet_username" name="glinet_username"
+                       value="{{ config.glinet_username or 'root' }}">
+            </div>
+            <div class="form-group">
+                <label for="glinet_password">SSH Password</label>
+                <input type="password" id="glinet_password" name="glinet_password"
+                       value="{{ config.glinet_password or '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="glinet_wifi_interface">WiFi Interface</label>
+                <input type="text" id="glinet_wifi_interface" name="glinet_wifi_interface"
+                       value="{{ config.glinet_wifi_interface or 'wlan0' }}">
+                <small style="color: var(--text-muted);">Base radio interface</small>
+            </div>
+            <div class="form-group">
+                <label for="glinet_monitor_interface">Monitor Interface</label>
+                <input type="text" id="glinet_monitor_interface" name="glinet_monitor_interface"
+                       value="{{ config.glinet_monitor_interface or 'wlan0mon' }}">
+                <small style="color: var(--text-muted);">Auto-created in monitor mode</small>
+            </div>
+        </div>
+        <div class="card-actions">
+            <button type="button" class="btn"
+                    hx-post="/setup/test/glinet"
+                    hx-include="#glinet_host, #glinet_username, #glinet_password"
+                    hx-target="#glinet-result"
+                    hx-indicator="#glinet-spinner">
+                Test Connection
+            </button>
+            <span id="glinet-spinner" class="htmx-indicator">Testing...</span>
+            <span id="glinet-result"></span>
+        </div>
+    </div>
+
     <!-- Polling Settings Card -->
     <div class="card">
         <h2>Polling</h2>

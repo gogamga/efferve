@@ -49,13 +49,27 @@ def _create_sniffer(mode: str, cfg: Settings) -> BaseSniffer | None:
             logger.warning("Monitor mode selected but wifi_interface not configured")
             return None
         return MonitorSniffer(interface=cfg.wifi_interface)
+    if mode == "glinet":
+        from efferve.sniffer.glinet import GlinetSniffer
+
+        if not cfg.glinet_host or not cfg.glinet_password:
+            logger.warning("GL.iNet mode selected but credentials not configured")
+            return None
+        return GlinetSniffer(
+            host=cfg.glinet_host,
+            username=cfg.glinet_username,
+            password=cfg.glinet_password,
+            wifi_interface=cfg.glinet_wifi_interface,
+            monitor_interface=cfg.glinet_monitor_interface,
+            poll_interval=cfg.poll_interval,
+        )
     if mode == "mock":
         from efferve.sniffer.mock import MockSniffer
 
         return MockSniffer(poll_interval=5)
     if mode == "none":
         return None
-    logger.warning("Unknown sniffer mode '%s', running without sniffer", mode)
+    logger.warning("Unknown sniffer mode '%s', skipping", mode)
     return None
 
 
@@ -69,26 +83,36 @@ def _handle_beacon_event(event: BeaconEvent) -> None:
         logger.exception("Error handling beacon event for %s", event.mac_address)
 
 
-async def _start_sniffer(app: FastAPI) -> None:
-    """Start the sniffer with current configuration."""
+async def _start_sniffers(app: FastAPI) -> None:
+    """Start all configured sniffers."""
     cfg = load_config()
-    sniffer = _create_sniffer(cfg.sniffer_mode, cfg)
-    if sniffer:
-        sniffer.on_event(_handle_beacon_event)
-        await sniffer.start()
-        logger.info("Sniffer started (mode=%s)", cfg.sniffer_mode)
+    modes = cfg.get_active_sniffer_modes()
+
+    sniffers: list[BaseSniffer] = []
+    for mode in modes:
+        sniffer = _create_sniffer(mode, cfg)
+        if sniffer:
+            sniffer.on_event(_handle_beacon_event)
+            await sniffer.start()
+            sniffers.append(sniffer)
+            logger.info("Sniffer started: %s", mode)
+
+    if not sniffers:
+        logger.info("No sniffers configured")
     else:
-        logger.info("No sniffer configured (mode=%s)", cfg.sniffer_mode)
-    app.state.sniffer = sniffer
+        logger.info("Running %d sniffer(s): %s", len(sniffers), modes)
+
+    app.state.sniffers = sniffers
 
 
 async def restart_sniffer(app: FastAPI) -> None:
-    """Restart the sniffer with fresh configuration."""
-    if hasattr(app.state, "sniffer") and app.state.sniffer:
-        await app.state.sniffer.stop()
-        logger.info("Stopped existing sniffer")
-    await _start_sniffer(app)
-    logger.info("Sniffer restarted")
+    """Restart all sniffers with fresh configuration."""
+    if hasattr(app.state, "sniffers"):
+        for sniffer in app.state.sniffers:
+            await sniffer.stop()
+        logger.info("Stopped %d existing sniffer(s)", len(app.state.sniffers))
+    await _start_sniffers(app)
+    logger.info("Sniffers restarted")
 
 
 @asynccontextmanager
@@ -97,13 +121,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
     logger.info("Database initialized")
 
-    await _start_sniffer(app)
+    await _start_sniffers(app)
 
     yield
 
-    if hasattr(app.state, "sniffer") and app.state.sniffer:
-        await app.state.sniffer.stop()
-        logger.info("Sniffer stopped")
+    if hasattr(app.state, "sniffers"):
+        for sniffer in app.state.sniffers:
+            await sniffer.stop()
+        logger.info("All sniffers stopped")
 
 
 app = FastAPI(

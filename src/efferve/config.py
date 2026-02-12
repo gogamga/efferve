@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, JsonConfigSettingsSource
 
 _CONFIG_FILE = Path("./data/config.json")
@@ -20,8 +21,12 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "info"
 
-    # Sniffer mode: "ruckus", "opnsense", "monitor", "mock", "none"
+    # Sniffer mode (deprecated, use sniffer_modes)
     sniffer_mode: str = "none"
+
+    # Multiple sniffer backends to run simultaneously
+    # Env: EFFERVE_SNIFFER_MODES="ruckus,glinet"
+    sniffer_modes: list[str] = []
 
     # WiFi Sniffer — Monitor Mode
     wifi_interface: str | None = None
@@ -35,6 +40,31 @@ class Settings(BaseSettings):
     opnsense_url: str | None = None
     opnsense_api_key: str | None = None
     opnsense_api_secret: str | None = None
+
+    # GL.iNet Remote Monitor (Peek)
+    glinet_host: str | None = None
+    glinet_username: str = "root"
+    glinet_password: str | None = None
+    glinet_wifi_interface: str = "wlan0"
+    glinet_monitor_interface: str = "wlan0mon"
+
+    @field_validator("sniffer_modes", mode="before")
+    @classmethod
+    def parse_sniffer_modes(cls, v: object) -> list[str]:
+        """Parse comma-separated string or list."""
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        if isinstance(v, list):
+            return [s for s in v if s]
+        return []
+
+    def get_active_sniffer_modes(self) -> list[str]:
+        """Return list of sniffer modes, with backwards compat for sniffer_mode."""
+        if self.sniffer_modes:
+            return self.sniffer_modes
+        if self.sniffer_mode and self.sniffer_mode != "none":
+            return [self.sniffer_mode]
+        return []
 
     # Polling
     poll_interval: int = 30  # seconds between polls

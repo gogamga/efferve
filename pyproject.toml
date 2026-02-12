@@ -15,6 +15,7 @@ dependencies = [
     "jinja2>=3.1",
     "python-multipart>=0.0.18",
     "aioruckus",
+    "asyncssh>=2.14",
     "mac-vendor-lookup>=0.1.12",
 ]
 
