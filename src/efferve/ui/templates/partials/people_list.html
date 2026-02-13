@@ -1,0 +1,59 @@
+{% if persons %}
+<div class="device-grid" style="margin-top: 1.5rem;">
+    {% for p in persons %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="font-size: 1.1rem;">{{ p.person.name }}</strong>
+            {% if p.is_present %}
+            <span class="badge badge-resident">Present</span>
+            {% else %}
+            <span class="badge badge-unknown">Away</span>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 0.75rem;">
+            {% if p.present_devices %}
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Devices:</div>
+            {% for device in p.present_devices %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+                <div style="font-size: 0.85rem;">
+                    <div>{{ device.display_name or device.hostname or "Unknown" }}</div>
+                    <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">{{ device.mac_address }}</div>
+                </div>
+                <button
+                    class="btn"
+                    style="padding: 0.2rem 0.5rem; font-size: 0.75rem; background: var(--red); color: white; border: none;"
+                    hx-delete="/people/{{ p.person.id }}/unassign/{{ device.mac_address | urlencode }}"
+                    hx-target="#people-list"
+                    hx-swap="innerHTML"
+                    hx-confirm="Remove this device from {{ p.person.name }}?">×</button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No devices assigned</div>
+            {% endif %}
+        </div>
+
+        <form hx-post="/people/{{ p.person.id }}/assign" hx-target="#people-list" hx-swap="innerHTML" style="margin-top: 0.75rem;">
+            <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label for="mac-{{ p.person.id }}">Assign Device (MAC)</label>
+                <input type="text" id="mac-{{ p.person.id }}" name="mac_address" placeholder="aa:bb:cc:dd:ee:ff" style="font-family: monospace;">
+            </div>
+            <button type="submit" class="btn" style="font-size: 0.85rem;">Assign</button>
+        </form>
+
+        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+            <button
+                class="btn"
+                style="background: var(--red); color: white; border: none; width: 100%;"
+                hx-delete="/people/{{ p.person.id }}"
+                hx-target="#people-list"
+                hx-swap="innerHTML"
+                hx-confirm="Delete {{ p.person.name }} and unassign all devices?">Delete Person</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="margin-top: 1.5rem;">No people added yet. Add a person above to get started.</div>
+{% endif %}

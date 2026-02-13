@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - Efferve{% endblock %}
+
+{% block content %}
+<h1>Alerts</h1>
+
+<div class="card">
+    <h2>Add Alert Rule</h2>
+    <form hx-post="/alerts/add" hx-target="#alerts-list" hx-swap="innerHTML">
+        <div class="form-group">
+            <label for="name">Rule Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="webhook_url">Webhook URL</label>
+            <input type="url" id="webhook_url" name="webhook_url" placeholder="https://example.com/webhook" required>
+        </div>
+
+        <div class="form-group">
+            <label>Trigger Type</label>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="trigger_type" value="arrive"> Arrive
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="trigger_type" value="depart"> Depart
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="trigger_type" value="both" checked> Both
+                </label>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="person_id">Person ID (optional)</label>
+                <input type="number" id="person_id" name="person_id" placeholder="Leave blank for all">
+            </div>
+
+            <div class="form-group">
+                <label for="mac_address">MAC Address (optional)</label>
+                <input type="text" id="mac_address" name="mac_address" placeholder="aa:bb:cc:dd:ee:ff">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Rule</button>
+    </form>
+</div>
+
+<div id="alerts-list">
+    {% include "partials/alerts_list.html" %}
+</div>
+{% endblock %}

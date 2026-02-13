@@ -9,7 +9,8 @@ from sqlmodel import Session
 
 from efferve.config import Settings, load_config, settings
 from efferve.database import engine, init_db
-from efferve.registry.store import reclassify_device, upsert_device
+from efferve.registry.store import detect_presence_changes, reclassify_device, upsert_device
+from efferve.alerts.manager import dispatch_webhooks, evaluate_presence_change
 from efferve.sniffer.base import BaseSniffer, BeaconEvent
 
 logging.basicConfig(level=settings.log_level.upper())
@@ -79,6 +80,21 @@ def _handle_beacon_event(event: BeaconEvent) -> None:
         with Session(engine) as session:
             device = upsert_device(session, event)
             reclassify_device(session, device)
+
+            # Detect presence changes and trigger alerts
+            try:
+                changes = detect_presence_changes(session, grace_seconds=settings.presence_grace_period)
+                all_payloads = []
+                for mac, event_type in changes:
+                    logger.info("Presence change: %s %s", mac, event_type)
+                    device_name = device.display_name or device.hostname or device.vendor
+                    payloads = evaluate_presence_change(session, mac, event_type, device_name=device_name)
+                    all_payloads.extend(payloads)
+
+                if all_payloads:
+                    dispatch_webhooks(all_payloads)
+            except Exception:
+                logger.exception("Error detecting presence changes or dispatching alerts")
     except Exception:
         logger.exception("Error handling beacon event for %s", event.mac_address)
 
@@ -118,6 +134,11 @@ async def restart_sniffer(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application startup/shutdown lifecycle."""
+    # Import models to register them with SQLModel before init_db()
+    import efferve.alerts.models  # noqa: F401
+    import efferve.persona.models  # noqa: F401
+    import efferve.registry.models  # noqa: F401
+
     init_db()
     logger.info("Database initialized")
 

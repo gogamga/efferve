@@ -7,10 +7,21 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
+from efferve.alerts.manager import create_rule, delete_rule, list_rules, update_rule
+from efferve.alerts.models import AlertRule
 from efferve.config import load_config, save_config, settings
 from efferve.database import get_session
+from efferve.persona.engine import (
+    assign_device,
+    create_person,
+    delete_person,
+    get_present_persons,
+    list_persons,
+    unassign_device,
+)
+from efferve.persona.models import Person
 from efferve.registry.models import DeviceClassification
-from efferve.registry.store import get_all_devices, get_present_devices
+from efferve.registry.store import get_all_devices, get_device, get_present_devices, set_display_name
 from efferve.sniffer.test_connection import test_glinet, test_opnsense, test_ruckus
 
 _template_dir = Path(__file__).parent / "templates"
@@ -179,3 +190,245 @@ async def save_setup(
     save_config(values)
     await restart_sniffer(request.app)
     return Response(status_code=200, headers={"HX-Redirect": "/"})
+
+
+# People page
+@router.get("/people", response_class=HTMLResponse)
+def people_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    persons = get_present_persons(session, grace_seconds=settings.presence_grace_period)
+    all_devices = get_all_devices(session)
+    return templates.TemplateResponse(
+        "people.html",
+        {
+            "request": request,
+            "persons": persons,
+            "all_devices": all_devices,
+        },
+    )
+
+
+# People partials
+@router.get("/partials/people", response_class=HTMLResponse)
+def partial_people(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    persons = get_present_persons(session, grace_seconds=settings.presence_grace_period)
+    all_devices = get_all_devices(session)
+    return templates.TemplateResponse(
+        "partials/people_list.html",
+        {
+            "request": request,
+            "persons": persons,
+            "all_devices": all_devices,
+        },
+    )
+
+
+@router.post("/people/add", response_class=HTMLResponse)
+def add_person(
+    request: Request,
+    name: str = Form(""),
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    if name.strip():
+        create_person(session, name.strip())
+    # Return updated people list partial
+    persons = get_present_persons(session, grace_seconds=settings.presence_grace_period)
+    all_devices = get_all_devices(session)
+    return templates.TemplateResponse(
+        "partials/people_list.html",
+        {
+            "request": request,
+            "persons": persons,
+            "all_devices": all_devices,
+        },
+    )
+
+
+@router.post("/people/{person_id}/assign", response_class=HTMLResponse)
+def assign_device_ui(
+    request: Request,
+    person_id: int,
+    mac_address: str = Form(""),
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    if mac_address.strip():
+        try:
+            assign_device(session, person_id, mac_address.strip())
+        except ValueError:
+            pass  # silently ignore — device not found or already assigned
+    persons = get_present_persons(session, grace_seconds=settings.presence_grace_period)
+    all_devices = get_all_devices(session)
+    return templates.TemplateResponse(
+        "partials/people_list.html",
+        {
+            "request": request,
+            "persons": persons,
+            "all_devices": all_devices,
+        },
+    )
+
+
+@router.delete("/people/{person_id}/unassign/{mac}", response_class=HTMLResponse)
+def unassign_device_ui(
+    request: Request,
+    person_id: int,
+    mac: str,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    unassign_device(session, person_id, mac)
+    persons = get_present_persons(session, grace_seconds=settings.presence_grace_period)
+    all_devices = get_all_devices(session)
+    return templates.TemplateResponse(
+        "partials/people_list.html",
+        {
+            "request": request,
+            "persons": persons,
+            "all_devices": all_devices,
+        },
+    )
+
+
+@router.delete("/people/{person_id}", response_class=HTMLResponse)
+def delete_person_ui(
+    request: Request,
+    person_id: int,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    delete_person(session, person_id)
+    persons = get_present_persons(session, grace_seconds=settings.presence_grace_period)
+    all_devices = get_all_devices(session)
+    return templates.TemplateResponse(
+        "partials/people_list.html",
+        {
+            "request": request,
+            "persons": persons,
+            "all_devices": all_devices,
+        },
+    )
+
+
+# Alerts page
+@router.get("/alerts", response_class=HTMLResponse)
+def alerts_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    rules = list_rules(session)
+    return templates.TemplateResponse(
+        "alerts.html",
+        {
+            "request": request,
+            "rules": rules,
+        },
+    )
+
+
+@router.get("/partials/alerts", response_class=HTMLResponse)
+def partial_alerts(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    rules = list_rules(session)
+    return templates.TemplateResponse(
+        "partials/alerts_list.html",
+        {
+            "request": request,
+            "rules": rules,
+        },
+    )
+
+
+@router.post("/alerts/add", response_class=HTMLResponse)
+def add_alert_rule(
+    request: Request,
+    name: str = Form(""),
+    webhook_url: str = Form(""),
+    trigger_type: str = Form("both"),
+    person_id: str = Form(""),
+    mac_address: str = Form(""),
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    if name.strip() and webhook_url.strip():
+        create_rule(
+            session,
+            name=name.strip(),
+            webhook_url=webhook_url.strip(),
+            trigger_type=trigger_type,
+            person_id=int(person_id) if person_id.strip() else None,
+            mac_address=mac_address.strip() or None,
+        )
+    rules = list_rules(session)
+    return templates.TemplateResponse(
+        "partials/alerts_list.html",
+        {
+            "request": request,
+            "rules": rules,
+        },
+    )
+
+
+@router.post("/alerts/{rule_id}/toggle", response_class=HTMLResponse)
+def toggle_alert_rule(
+    request: Request,
+    rule_id: int,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    from efferve.alerts.manager import get_rule
+
+    rule = get_rule(session, rule_id)
+    if rule:
+        update_rule(session, rule_id, enabled=not rule.enabled)
+    rules = list_rules(session)
+    return templates.TemplateResponse(
+        "partials/alerts_list.html",
+        {
+            "request": request,
+            "rules": rules,
+        },
+    )
+
+
+@router.delete("/alerts/{rule_id}/delete", response_class=HTMLResponse)
+def delete_alert_rule_ui(
+    request: Request,
+    rule_id: int,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    delete_rule(session, rule_id)
+    rules = list_rules(session)
+    return templates.TemplateResponse(
+        "partials/alerts_list.html",
+        {
+            "request": request,
+            "rules": rules,
+        },
+    )
+
+
+# Device naming
+@router.get("/partials/device-name-edit/{mac}", response_class=HTMLResponse)
+def device_name_edit_form(
+    request: Request,
+    mac: str,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    device = get_device(session, mac)
+    return templates.TemplateResponse(
+        "partials/device_name_edit.html",
+        {
+            "request": request,
+            "device": device,
+        },
+    )
+
+
+@router.post("/devices/{mac}/name", response_class=HTMLResponse)
+def save_device_name(
+    request: Request,
+    mac: str,
+    display_name: str = Form(""),
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    set_display_name(session, mac, display_name.strip())
+    # Return the updated device row partial
+    device = get_device(session, mac)
+    return templates.TemplateResponse(
+        "partials/device_row.html",
+        {
+            "request": request,
+            "device": device,
+        },
+    )

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}People - Efferve{% endblock %}
+
+{% block content %}
+<h1>People</h1>
+
+<div class="card">
+    <h2>Add Person</h2>
+    <form hx-post="/people/add" hx-target="#people-list" hx-swap="innerHTML">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div id="people-list">
+    {% include "partials/people_list.html" %}
+</div>
+{% endblock %}

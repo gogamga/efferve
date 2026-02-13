@@ -1,0 +1,5 @@
+<form hx-post="/devices/{{ device.mac_address | urlencode }}/name" hx-target="closest tr" hx-swap="outerHTML">
+    <input type="text" name="display_name" value="{{ device.display_name or '' }}"
+           style="width: 140px; padding: 0.2rem 0.4rem;" autofocus>
+    <button type="submit" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">Save</button>
+</form>

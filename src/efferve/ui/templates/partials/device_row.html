@@ -1,0 +1,14 @@
+<tr>
+    <td>
+        <span hx-get="/partials/device-name-edit/{{ device.mac_address | urlencode }}" hx-target="closest td" hx-swap="innerHTML"
+              style="cursor: pointer; border-bottom: 1px dashed var(--border);">
+            {{ device.display_name or device.hostname or "—" }}
+        </span>
+    </td>
+    <td style="font-family: monospace; font-size: 0.85rem;">{{ device.mac_address }}</td>
+    <td>{{ device.vendor or "—" }}</td>
+    <td class="signal-bar">{% if device.signal_strength and device.signal_strength != 0 %}{{ device.signal_strength }}{% else %}—{% endif %}</td>
+    <td>{{ device.visit_count }}</td>
+    <td><span class="badge badge-{{ device.classification.value }}">{{ device.classification.value }}</span></td>
+    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ device.last_seen.strftime('%Y-%m-%d %H:%M') }}</td>
+</tr>

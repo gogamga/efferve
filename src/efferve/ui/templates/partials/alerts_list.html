@@ -1,0 +1,60 @@
+{% if rules %}
+<div style="margin-top: 1.5rem;">
+    <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Alert Rules</h2>
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Trigger</th>
+                    <th>Target</th>
+                    <th>Webhook</th>
+                    <th>Enabled</th>
+                    <th style="width: 80px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in rules %}
+                <tr>
+                    <td><strong>{{ rule.name }}</strong></td>
+                    <td><span class="badge badge-{{ 'resident' if rule.trigger_type == 'arrive' else ('passerby' if rule.trigger_type == 'depart' else 'frequent') }}">{{ rule.trigger_type }}</span></td>
+                    <td style="font-size: 0.85rem;">
+                        {% if rule.person_id %}
+                            Person #{{ rule.person_id }}
+                        {% elif rule.mac_address %}
+                            {{ rule.mac_address }}
+                        {% else %}
+                            All
+                        {% endif %}
+                    </td>
+                    <td style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ rule.webhook_url }}
+                    </td>
+                    <td>
+                        <button
+                            class="btn"
+                            style="padding: 0.3rem 0.6rem; font-size: 0.75rem; {% if rule.enabled %}background: var(--green); color: white; border: none;{% else %}background: var(--surface);{% endif %}"
+                            hx-post="/alerts/{{ rule.id }}/toggle"
+                            hx-target="#alerts-list"
+                            hx-swap="innerHTML">
+                            {{ "ON" if rule.enabled else "OFF" }}
+                        </button>
+                    </td>
+                    <td>
+                        <button
+                            class="btn"
+                            style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: var(--red); color: white; border: none;"
+                            hx-delete="/alerts/{{ rule.id }}/delete"
+                            hx-target="#alerts-list"
+                            hx-swap="innerHTML"
+                            hx-confirm="Delete alert rule '{{ rule.name }}'?">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="empty-state" style="margin-top: 1.5rem;">No alert rules configured. Add a rule above to get notified when people arrive or depart.</div>
+{% endif %}

@@ -6,7 +6,12 @@ from datetime import UTC, datetime, timedelta
 from mac_vendor_lookup import MacLookup, VendorNotFoundError
 from sqlmodel import Session, select
 
-from efferve.registry.models import Device, DeviceClassification
+from efferve.registry.models import (
+    Device,
+    DeviceClassification,
+    PresenceEvent,
+    PresenceLog,
+)
 from efferve.sniffer.base import BeaconEvent
 
 logger = logging.getLogger(__name__)
@@ -16,6 +21,9 @@ _mac_lookup = MacLookup()
 # Gap threshold: a new "visit" is counted when the device reappears
 # after being absent for at least this long.
 _VISIT_GAP_SECONDS = 30 * 60  # 30 minutes
+
+# Track previously present devices for change detection
+_previously_present: set[str] = set()
 
 
 def normalize_mac(mac: str) -> str:
@@ -137,3 +145,71 @@ def get_present_devices(session: Session, grace_seconds: int = 180) -> list[Devi
         .order_by(Device.last_seen.desc())  # type: ignore[union-attr]
     )
     return list(session.exec(stmt).all())
+
+
+def set_display_name(session: Session, mac: str, name: str) -> Device | None:
+    """Set display_name on a device. Return None if device not found."""
+    device = session.get(Device, normalize_mac(mac))
+    if device is None:
+        return None
+    device.display_name = name
+    session.commit()
+    session.refresh(device)
+    return device
+
+
+def log_presence_change(
+    session: Session, mac_address: str, event_type: PresenceEvent
+) -> PresenceLog:
+    """Create a PresenceLog entry."""
+    log_entry = PresenceLog(
+        mac_address=normalize_mac(mac_address),
+        event_type=event_type,
+    )
+    session.add(log_entry)
+    session.commit()
+    session.refresh(log_entry)
+    return log_entry
+
+
+def get_presence_history(
+    session: Session,
+    mac_address: str | None = None,
+    limit: int = 100,
+) -> list[PresenceLog]:
+    """Get presence log entries, optionally filtered by MAC. Order by timestamp desc."""
+    stmt = select(PresenceLog)
+    if mac_address is not None:
+        stmt = stmt.where(PresenceLog.mac_address == normalize_mac(mac_address))  # type: ignore[arg-type]
+    stmt = stmt.order_by(PresenceLog.timestamp.desc()).limit(limit)  # type: ignore[union-attr]
+    return list(session.exec(stmt).all())
+
+
+def detect_presence_changes(
+    session: Session, grace_seconds: int = 180
+) -> list[tuple[str, str]]:
+    """Compare currently present devices against previously known present set.
+
+    Return list of (mac, "arrive"|"depart") tuples.
+    """
+    global _previously_present
+
+    current_devices = get_present_devices(session, grace_seconds)
+    current_macs = {device.mac_address for device in current_devices}
+
+    arrivals = current_macs - _previously_present
+    departures = _previously_present - current_macs
+
+    changes: list[tuple[str, str]] = []
+
+    for mac in arrivals:
+        log_presence_change(session, mac, PresenceEvent.arrive)
+        changes.append((mac, "arrive"))
+
+    for mac in departures:
+        log_presence_change(session, mac, PresenceEvent.depart)
+        changes.append((mac, "depart"))
+
+    _previously_present = current_macs
+
+    return changes
