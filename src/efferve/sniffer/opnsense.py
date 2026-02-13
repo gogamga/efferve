@@ -62,7 +62,9 @@ class OpnsenseSniffer(BaseSniffer):
         async with httpx.AsyncClient(
             base_url=self.url,
             auth=auth,
-            verify=False,  # OPNsense commonly uses self-signed certs
+            # TODO: Support custom CA cert for self-signed OPNsense certificates.
+            # verify=False disables SSL verification (MITM risk).
+            verify=False,
             timeout=15.0,
         ) as client:
             while self._running:

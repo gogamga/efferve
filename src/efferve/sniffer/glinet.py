@@ -7,6 +7,7 @@ for local parsing with scapy.
 
 import asyncio
 import logging
+import re
 import struct
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -14,6 +15,17 @@ from datetime import UTC, datetime
 from efferve.sniffer.base import BaseSniffer, BeaconEvent
 
 logger = logging.getLogger(__name__)
+
+_VALID_INTERFACE_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def _validate_interface_name(name: str) -> str:
+    """Validate WiFi interface name to prevent command injection."""
+    if not name or len(name) > 15:
+        raise ValueError(f"Invalid interface name: {name!r}")
+    if not _VALID_INTERFACE_RE.match(name):
+        raise ValueError(f"Interface name contains invalid characters: {name!r}")
+    return name
 
 # Pcap global header is 24 bytes; per-packet record header is 16 bytes.
 _PCAP_GLOBAL_HEADER_LEN = 24
@@ -35,8 +47,8 @@ class GlinetSniffer(BaseSniffer):
         self.host = host
         self.username = username
         self.password = password
-        self.wifi_interface = wifi_interface
-        self.monitor_interface = monitor_interface
+        self.wifi_interface = _validate_interface_name(wifi_interface)
+        self.monitor_interface = _validate_interface_name(monitor_interface)
         self.poll_interval = poll_interval
         self._callbacks: list[Callable[[BeaconEvent], None]] = []
         self._running = False
@@ -112,6 +124,8 @@ class GlinetSniffer(BaseSniffer):
                     self.host,
                     username=self.username,
                     password=self.password,
+                    # TODO: Use known_hosts file for production deployments.
+                    # known_hosts=None disables host key verification (MITM risk).
                     known_hosts=None,
                 ) as conn:
                     logger.info("SSH connected to %s", self.host)

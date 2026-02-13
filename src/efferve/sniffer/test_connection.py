@@ -67,7 +67,12 @@ async def test_opnsense(url: str, api_key: str, api_secret: str) -> ConnectionRe
     try:
         auth = httpx.BasicAuth(api_key, api_secret)
         async with httpx.AsyncClient(
-            base_url=url, auth=auth, verify=False, timeout=10.0
+            base_url=url,
+            auth=auth,
+            # TODO: Support custom CA cert for self-signed OPNsense certificates.
+            # verify=False disables SSL verification (MITM risk).
+            verify=False,
+            timeout=10.0,
         ) as client:
             resp = await client.get("/api/dhcpv4/leases/search_lease")
             resp.raise_for_status()
@@ -103,6 +108,8 @@ async def test_glinet(host: str, username: str, password: str) -> ConnectionResu
             host,
             username=username,
             password=password,
+            # TODO: Use known_hosts file for production deployments.
+            # known_hosts=None disables host key verification (MITM risk).
             known_hosts=None,
             connect_timeout=10,
         ) as conn:

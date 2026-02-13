@@ -8,7 +8,6 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from efferve.alerts.manager import create_rule, delete_rule, list_rules, update_rule
-from efferve.alerts.models import AlertRule
 from efferve.config import load_config, save_config, settings
 from efferve.database import get_session
 from efferve.persona.engine import (
@@ -16,12 +15,15 @@ from efferve.persona.engine import (
     create_person,
     delete_person,
     get_present_persons,
-    list_persons,
     unassign_device,
 )
-from efferve.persona.models import Person
 from efferve.registry.models import DeviceClassification
-from efferve.registry.store import get_all_devices, get_device, get_present_devices, set_display_name
+from efferve.registry.store import (
+    get_all_devices,
+    get_device,
+    get_present_devices,
+    set_display_name,
+)
 from efferve.sniffer.test_connection import test_glinet, test_opnsense, test_ruckus
 
 _template_dir = Path(__file__).parent / "templates"
@@ -162,26 +164,33 @@ async def save_setup(
 ) -> Response:
     from efferve.main import restart_sniffer
 
+    # Load existing config to preserve unchanged passwords
+    existing_config = load_config()
+
     # Build sniffer_modes from all backends with credentials
     modes: list[str] = []
-    if ruckus_host and ruckus_username and ruckus_password:
+    if ruckus_host and ruckus_username and (ruckus_password or existing_config.ruckus_password):
         modes.append("ruckus")
-    if opnsense_url and opnsense_api_key and opnsense_api_secret:
+    if (
+        opnsense_url
+        and (opnsense_api_key or existing_config.opnsense_api_key)
+        and (opnsense_api_secret or existing_config.opnsense_api_secret)
+    ):
         modes.append("opnsense")
-    if glinet_host and glinet_password:
+    if glinet_host and (glinet_password or existing_config.glinet_password):
         modes.append("glinet")
 
     values = {
         "sniffer_modes": modes,
         "ruckus_host": ruckus_host or None,
         "ruckus_username": ruckus_username or None,
-        "ruckus_password": ruckus_password or None,
+        "ruckus_password": ruckus_password or existing_config.ruckus_password,
         "opnsense_url": opnsense_url or None,
-        "opnsense_api_key": opnsense_api_key or None,
-        "opnsense_api_secret": opnsense_api_secret or None,
+        "opnsense_api_key": opnsense_api_key or existing_config.opnsense_api_key,
+        "opnsense_api_secret": opnsense_api_secret or existing_config.opnsense_api_secret,
         "glinet_host": glinet_host or None,
         "glinet_username": glinet_username or None,
-        "glinet_password": glinet_password or None,
+        "glinet_password": glinet_password or existing_config.glinet_password,
         "glinet_wifi_interface": glinet_wifi_interface,
         "glinet_monitor_interface": glinet_monitor_interface,
         "poll_interval": poll_interval,

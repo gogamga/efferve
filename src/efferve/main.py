@@ -6,11 +6,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from sqlmodel import Session
+from starlette.middleware.base import BaseHTTPMiddleware
 
+from efferve.alerts.manager import dispatch_webhooks, evaluate_presence_change
 from efferve.config import Settings, load_config, settings
 from efferve.database import engine, init_db
 from efferve.registry.store import detect_presence_changes, reclassify_device, upsert_device
-from efferve.alerts.manager import dispatch_webhooks, evaluate_presence_change
 from efferve.sniffer.base import BaseSniffer, BeaconEvent
 
 logging.basicConfig(level=settings.log_level.upper())
@@ -83,12 +84,15 @@ def _handle_beacon_event(event: BeaconEvent) -> None:
 
             # Detect presence changes and trigger alerts
             try:
-                changes = detect_presence_changes(session, grace_seconds=settings.presence_grace_period)
+                grace = settings.presence_grace_period
+                changes = detect_presence_changes(session, grace_seconds=grace)
                 all_payloads = []
                 for mac, event_type in changes:
                     logger.info("Presence change: %s %s", mac, event_type)
                     device_name = device.display_name or device.hostname or device.vendor
-                    payloads = evaluate_presence_change(session, mac, event_type, device_name=device_name)
+                    payloads = evaluate_presence_change(
+                        session, mac, event_type, device_name=device_name
+                    )
                     all_payloads.extend(payloads)
 
                 if all_payloads:
@@ -158,6 +162,24 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline'"
+        )
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Register routers
 from efferve.api.routes import router as api_router  # noqa: E402

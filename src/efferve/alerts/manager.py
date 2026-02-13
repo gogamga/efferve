@@ -1,8 +1,11 @@
 """Alert evaluation and webhook dispatch."""
 
+import ipaddress
 import logging
+import socket
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from sqlmodel import Session, select
@@ -14,6 +17,43 @@ from efferve.registry.store import normalize_mac
 logger = logging.getLogger(__name__)
 
 
+def validate_webhook_url(url: str) -> str:
+    """Validate webhook URL is not targeting internal resources.
+
+    Raises ValueError if URL is unsafe.
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise ValueError("Invalid URL format")
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("Webhook URL must use http or https")
+
+    if not parsed.hostname:
+        raise ValueError("Webhook URL must include a hostname")
+
+    hostname = parsed.hostname.lower()
+
+    # Block localhost variants
+    if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        raise ValueError("Webhook URL cannot target localhost")
+
+    # Try to resolve hostname and check IP
+    try:
+        resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        for family, _, _, _, sockaddr in resolved:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise ValueError("Webhook URL cannot target private/internal networks")
+    except socket.gaierror:
+        pass  # Can't resolve — allow (might be valid later)
+    except ValueError:
+        raise  # Re-raise our own ValueError
+
+    return url
+
+
 def create_rule(
     session: Session,
     name: str,
@@ -23,6 +63,7 @@ def create_rule(
     mac_address: str | None = None,
 ) -> AlertRule:
     """Create a new alert rule."""
+    validate_webhook_url(webhook_url)
     rule = AlertRule(
         name=name,
         webhook_url=webhook_url,
@@ -55,6 +96,10 @@ def update_rule(session: Session, rule_id: int, **kwargs: object) -> AlertRule |
     rule = session.get(AlertRule, rule_id)
     if rule is None:
         return None
+
+    # Validate webhook_url if provided
+    if "webhook_url" in kwargs and isinstance(kwargs["webhook_url"], str):
+        validate_webhook_url(kwargs["webhook_url"])
 
     # Normalize mac_address if provided
     if "mac_address" in kwargs and isinstance(kwargs["mac_address"], str):

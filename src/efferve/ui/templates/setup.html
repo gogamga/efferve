@@ -24,7 +24,7 @@
             <div class="form-group">
                 <label for="ruckus_password">Password</label>
                 <input type="password" id="ruckus_password" name="ruckus_password"
-                       value="{{ config.ruckus_password or '' }}">
+                       placeholder="{{ '••••••••' if config.ruckus_password else '' }}">
             </div>
         </div>
         <div class="card-actions">
@@ -60,7 +60,7 @@
             <div class="form-group">
                 <label for="opnsense_api_secret">API Secret</label>
                 <input type="password" id="opnsense_api_secret" name="opnsense_api_secret"
-                       value="{{ config.opnsense_api_secret or '' }}">
+                       placeholder="{{ '••••••••' if config.opnsense_api_secret else '' }}">
             </div>
         </div>
         <div class="card-actions">
@@ -96,7 +96,7 @@
             <div class="form-group">
                 <label for="glinet_password">SSH Password</label>
                 <input type="password" id="glinet_password" name="glinet_password"
-                       value="{{ config.glinet_password or '' }}">
+                       placeholder="{{ '••••••••' if config.glinet_password else '' }}">
             </div>
         </div>
         <div class="form-row">

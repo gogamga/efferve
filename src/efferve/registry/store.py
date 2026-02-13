@@ -1,6 +1,7 @@
 """Device CRUD operations, classification, and presence queries."""
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 
 from mac_vendor_lookup import MacLookup, VendorNotFoundError
@@ -32,6 +33,9 @@ def normalize_mac(mac: str) -> str:
     # Handle bare hex (e.g. "AABBCCDDEEFF")
     if ":" not in cleaned and len(cleaned) == 12:
         cleaned = ":".join(cleaned[i : i + 2] for i in range(0, 12, 2))
+    # Strict validation
+    if not re.match(r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$", cleaned):
+        raise ValueError(f"Invalid MAC address format: {mac}")
     return cleaned
 
 

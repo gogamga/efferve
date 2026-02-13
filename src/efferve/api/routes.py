@@ -1,7 +1,7 @@
 """REST API endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from efferve.alerts.manager import (
@@ -39,31 +39,31 @@ router = APIRouter(prefix="/api")
 
 # Request models
 class UpdateDeviceRequest(BaseModel):
-    display_name: str
+    display_name: str = Field(..., max_length=100)
 
 
 class CreatePersonRequest(BaseModel):
-    name: str
+    name: str = Field(..., max_length=100)
 
 
 class AssignDeviceRequest(BaseModel):
-    mac_address: str
+    mac_address: str = Field(..., max_length=17)  # XX:XX:XX:XX:XX:XX
 
 
 class CreateAlertRuleRequest(BaseModel):
-    name: str
-    webhook_url: str
+    name: str = Field(..., max_length=200)
+    webhook_url: str = Field(..., max_length=2048)
     trigger_type: TriggerType = TriggerType.both
     person_id: int | None = None
-    mac_address: str | None = None
+    mac_address: str | None = Field(default=None, max_length=17)
 
 
 class UpdateAlertRuleRequest(BaseModel):
-    name: str | None = None
-    webhook_url: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    webhook_url: str | None = Field(default=None, max_length=2048)
     trigger_type: TriggerType | None = None
     person_id: int | None = None
-    mac_address: str | None = None
+    mac_address: str | None = Field(default=None, max_length=17)
     enabled: bool | None = None
 
 
@@ -215,14 +215,17 @@ def create_alert_rule(
     request: CreateAlertRuleRequest,
     session: Session = Depends(get_session),
 ) -> AlertRule:
-    return create_rule(
-        session,
-        name=request.name,
-        webhook_url=request.webhook_url,
-        trigger_type=request.trigger_type,
-        person_id=request.person_id,
-        mac_address=request.mac_address,
-    )
+    try:
+        return create_rule(
+            session,
+            name=request.name,
+            webhook_url=request.webhook_url,
+            trigger_type=request.trigger_type,
+            person_id=request.person_id,
+            mac_address=request.mac_address,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/alerts/{rule_id}")
@@ -244,10 +247,13 @@ def update_alert_rule(
 ) -> AlertRule:
     # Only pass non-None values to update_rule
     updates = {k: v for k, v in request.model_dump().items() if v is not None}
-    rule = update_rule(session, rule_id, **updates)
-    if rule is None:
-        raise HTTPException(status_code=404, detail="Alert rule not found")
-    return rule
+    try:
+        rule = update_rule(session, rule_id, **updates)
+        if rule is None:
+            raise HTTPException(status_code=404, detail="Alert rule not found")
+        return rule
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/alerts/{rule_id}")
