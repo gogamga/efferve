@@ -107,7 +107,7 @@ class TestPacketParsing:
         # Configure scapy mock: RadioTap() returns a packet with probe request
         mock_pkt = MagicMock()
         mock_pkt.haslayer.return_value = True
-        mock_pkt.addr2 = "aa:bb:cc:dd:ee:ff"
+        mock_pkt.addr2 = "aa:cc:f3:1a:41:68"
 
         mock_elt = MagicMock()
         mock_elt.ID = 0
@@ -140,7 +140,7 @@ class TestPacketParsing:
         await sniffer._read_and_process_packet(stream)
 
         assert len(received) == 1
-        assert received[0].mac_address == "AA:BB:CC:DD:EE:FF"
+        assert received[0].mac_address == "AA:CC:F3:1A:41:68"
         assert received[0].signal_strength == -45
         assert received[0].source == "glinet"
 

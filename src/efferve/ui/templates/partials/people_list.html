@@ -37,7 +37,7 @@
         <form hx-post="/people/{{ p.person.id }}/assign" hx-target="#people-list" hx-swap="innerHTML" style="margin-top: 0.75rem;">
             <div class="form-group" style="margin-bottom: 0.5rem;">
                 <label for="mac-{{ p.person.id }}">Assign Device (MAC)</label>
-                <input type="text" id="mac-{{ p.person.id }}" name="mac_address" placeholder="aa:bb:cc:dd:ee:ff" style="font-family: monospace;">
+                <input type="text" id="mac-{{ p.person.id }}" name="mac_address" placeholder="aa:cc:f3:1a:41:68" style="font-family: monospace;">
             </div>
             <button type="submit" class="btn" style="font-size: 0.85rem;">Assign</button>
         </form>

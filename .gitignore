@@ -44,3 +44,8 @@ htmlcov/
 
 # mypy
 .mypy_cache/
+
+# Private local project guidance
+CLAUDE.md
+HANDOFF.md
+.claude/

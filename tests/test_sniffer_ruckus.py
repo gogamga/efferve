@@ -97,8 +97,8 @@ class TestRogueDetection:
         sniffer.on_event(received.append)
 
         rogues = [
-            {"mac": "aa:bb:cc:dd:ee:01", "ssid": "EvilTwin", "signal": 60},
-            {"mac": "aa:bb:cc:dd:ee:02", "ssid": None, "signal": None},
+            {"mac": "aa:cc:f3:1a:41:6a", "ssid": "EvilTwin", "signal": 60},
+            {"mac": "aa:cc:f3:1a:41:6b", "ssid": None, "signal": None},
         ]
         ctx = _mock_session(rogues=rogues)
         await _run_one_cycle(sniffer, ctx, _mock_aioruckus)
@@ -106,11 +106,11 @@ class TestRogueDetection:
         rogue_events = [e for e in received if e.source == "ruckus_rogue"]
         assert len(rogue_events) == 2
 
-        assert rogue_events[0].mac_address == "AA:BB:CC:DD:EE:01"
+        assert rogue_events[0].mac_address == "AA:CC:F3:1A:41:6A"
         assert rogue_events[0].ssid == "EvilTwin"
         assert rogue_events[0].signal_strength == -40  # SNR 60 → -40
 
-        assert rogue_events[1].mac_address == "AA:BB:CC:DD:EE:02"
+        assert rogue_events[1].mac_address == "AA:CC:F3:1A:41:6B"
         assert rogue_events[1].ssid is None
         assert rogue_events[1].signal_strength == -100  # None → -100
 
@@ -138,7 +138,7 @@ class TestClientEvents:
         events = [
             {
                 "time": "1700000000",
-                "client": "aa:bb:cc:dd:ee:03",
+                "client": "aa:cc:f3:1a:41:6c",
                 "event": "client_disassociated",
                 "ssid": "HomeNet",
             },
@@ -148,7 +148,7 @@ class TestClientEvents:
 
         event_events = [e for e in received if e.source == "ruckus_event"]
         assert len(event_events) == 1
-        assert event_events[0].mac_address == "AA:BB:CC:DD:EE:03"
+        assert event_events[0].mac_address == "AA:CC:F3:1A:41:6C"
         assert event_events[0].signal_strength == 0
         assert event_events[0].ssid == "HomeNet"
         assert event_events[0].timestamp.year == 2023  # epoch 1700000000
@@ -163,7 +163,7 @@ class TestClientEvents:
         events = [
             {
                 "time": "1700000000",
-                "client": "aa:bb:cc:dd:ee:03",
+                "client": "aa:cc:f3:1a:41:6c",
                 "event": "client_associated",
                 "ssid": "HomeNet",
             },
@@ -184,7 +184,7 @@ class TestClientEvents:
         events = [
             {
                 "time": "1700000000",
-                "client": "aa:bb:cc:dd:ee:03",
+                "client": "aa:cc:f3:1a:41:6c",
                 "event": "client_disassociated",
             },
         ]
@@ -204,7 +204,7 @@ class TestClientEvents:
         events = [
             {
                 "time": "not_a_number",
-                "client": "aa:bb:cc:dd:ee:03",
+                "client": "aa:cc:f3:1a:41:6c",
                 "event": "disassoc",
             },
         ]
@@ -224,13 +224,13 @@ class TestGracefulDegradation:
         received: list[BeaconEvent] = []
         sniffer.on_event(received.append)
 
-        clients = [{"mac": "aa:bb:cc:dd:ee:10", "signal": -50, "ssid": "Home"}]
+        clients = [{"mac": "aa:cc:f3:1a:41:79", "signal": -50, "ssid": "Home"}]
         ctx = _mock_session(clients=clients, rogues_error=True)
         await _run_one_cycle(sniffer, ctx, _mock_aioruckus)
 
         client_events = [e for e in received if e.source == "ruckus"]
         assert len(client_events) == 1
-        assert client_events[0].mac_address == "AA:BB:CC:DD:EE:10"
+        assert client_events[0].mac_address == "AA:CC:F3:1A:41:79"
 
     @pytest.mark.asyncio
     async def test_event_failure_doesnt_break_clients(self, _mock_aioruckus):
@@ -238,7 +238,7 @@ class TestGracefulDegradation:
         received: list[BeaconEvent] = []
         sniffer.on_event(received.append)
 
-        clients = [{"mac": "aa:bb:cc:dd:ee:10", "signal": -50, "ssid": "Home"}]
+        clients = [{"mac": "aa:cc:f3:1a:41:79", "signal": -50, "ssid": "Home"}]
         ctx = _mock_session(clients=clients, events_error=True)
         await _run_one_cycle(sniffer, ctx, _mock_aioruckus)
 
@@ -251,7 +251,7 @@ class TestGracefulDegradation:
         received: list[BeaconEvent] = []
         sniffer.on_event(received.append)
 
-        clients = [{"mac": "aa:bb:cc:dd:ee:10", "signal": -50, "ssid": "Home"}]
+        clients = [{"mac": "aa:cc:f3:1a:41:79", "signal": -50, "ssid": "Home"}]
         ctx = _mock_session(clients=clients, rogues_error=True, events_error=True)
         await _run_one_cycle(sniffer, ctx, _mock_aioruckus)
 

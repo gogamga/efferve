@@ -24,8 +24,8 @@ class TestDeviceClassification:
 
 class TestDeviceModel:
     def test_instantiation_defaults(self):
-        device = Device(mac_address="AA:BB:CC:DD:EE:FF")
-        assert device.mac_address == "AA:BB:CC:DD:EE:FF"
+        device = Device(mac_address="AA:CC:F3:1A:41:68")
+        assert device.mac_address == "AA:CC:F3:1A:41:68"
         assert device.display_name is None
         assert device.hostname is None
         assert device.vendor is None
@@ -37,7 +37,7 @@ class TestDeviceModel:
     def test_instantiation_with_values(self):
         now = datetime.now(UTC)
         device = Device(
-            mac_address="11:22:33:44:55:66",
+            mac_address="11:33:5A:81:A8:CF",
             display_name="My Phone",
             hostname="iphone",
             vendor="Apple",
@@ -59,20 +59,20 @@ class TestDeviceModel:
 class TestLocallyAdministered:
     def test_real_mac_not_locally_administered(self):
         # First octet 0x00 — bit 1 is 0
-        assert is_locally_administered("00:11:22:33:44:55") is False
+        assert is_locally_administered("00:22:49:70:97:BE") is False
 
     def test_locally_administered_mac(self):
         # First octet 0xFA — bit 1 is 1 (randomized)
-        assert is_locally_administered("FA:12:34:56:78:9A") is True
+        assert is_locally_administered("FA:23:5B:93:CB:03") is True
 
     def test_another_locally_administered(self):
         # First octet 0xF2 — bit 1 is 1
-        assert is_locally_administered("F2:AB:CD:EF:01:23") is True
+        assert is_locally_administered("F2:BC:F4:2C:54:8C") is True
 
     def test_real_oui_mac(self):
         # First octet 0xAA — bit 1 is 1 (AA = 10101010, bit1 set)
-        assert is_locally_administered("AA:BB:CC:DD:EE:FF") is True
+        assert is_locally_administered("AA:CC:F3:1A:41:68") is True
 
     def test_globally_unique_mac(self):
         # First octet 0x08 — bit 1 is 0
-        assert is_locally_administered("08:00:27:AA:BB:CC") is False
+        assert is_locally_administered("08:11:4E:E7:0E:35") is False

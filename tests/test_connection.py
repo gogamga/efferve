@@ -14,8 +14,8 @@ class TestRuckusConnection:
     async def test_success(self) -> None:
         mock_session = AsyncMock()
         mock_session.api.get_active_clients.return_value = [
-            {"mac": "AA:BB:CC:DD:EE:FF"},
-            {"mac": "11:22:33:44:55:66"},
+            {"mac": "AA:CC:F3:1A:41:68"},
+            {"mac": "11:33:5A:81:A8:CF"},
         ]
 
         mock_ctx = AsyncMock()
@@ -47,7 +47,7 @@ class TestOPNsenseConnection:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "rows": [{"mac": "AA:BB:CC:DD:EE:FF"}, {"mac": "11:22:33:44:55:66"}]
+            "rows": [{"mac": "AA:CC:F3:1A:41:68"}, {"mac": "11:33:5A:81:A8:CF"}]
         }
         mock_response.raise_for_status = MagicMock()
 

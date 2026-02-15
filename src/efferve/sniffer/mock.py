@@ -17,21 +17,21 @@ logger = logging.getLogger(__name__)
 
 # Stable devices (real OUI prefixes)
 _RESIDENT_DEVICES = [
-    ("AA:BB:CC:11:22:33", "Home-iPhone", -42),
-    ("AA:BB:CC:44:55:66", "Living-Room-TV", -35),
-    ("AA:BB:CC:77:88:99", "Work-Laptop", -50),
+    ("AA:CC:F3:4E:75:9C", "Home-iPhone", -42),
+    ("AA:CC:F3:81:A8:CF", "Living-Room-TV", -35),
+    ("AA:CC:F3:B4:DB:02", "Work-Laptop", -50),
 ]
 
 _VISITOR_DEVICES = [
-    ("DD:EE:FF:11:22:33", "Guest-Phone", -60),
-    ("DD:EE:FF:44:55:66", "Neighbor-Tablet", -72),
+    ("DD:FF:26:4E:75:9C", "Guest-Phone", -60),
+    ("DD:FF:26:81:A8:CF", "Neighbor-Tablet", -72),
 ]
 
 # Locally administered MACs (randomized — bit 1 of first octet set)
 _RANDOM_MACS = [
-    "FA:12:34:56:78:9A",
-    "F2:AB:CD:EF:01:23",
-    "FE:99:88:77:66:55",
+    "FA:23:5B:93:CB:03",
+    "F2:BC:F4:2C:54:8C",
+    "FE:AA:AF:B4:B9:BE",
 ]
 
 

@@ -49,10 +49,10 @@ def test_get_person_invalid_id(session: Session):
 
 def test_delete_person(session: Session):
     person = create_person(session, name="Alice")
-    device = Device(mac_address="AA:BB:CC:DD:EE:FF")
+    device = Device(mac_address="AA:CC:F3:1A:41:68")
     session.add(device)
     session.commit()
-    assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
+    assign_device(session, person.id, "AA:CC:F3:1A:41:68")
 
     assert delete_person(session, person.id) is True
     assert get_person(session, person.id) is None
@@ -65,96 +65,96 @@ def test_delete_person_invalid_id(session: Session):
 
 def test_assign_device(session: Session):
     person = create_person(session, name="Alice")
-    device = Device(mac_address="AA:BB:CC:DD:EE:FF")
+    device = Device(mac_address="AA:CC:F3:1A:41:68")
     session.add(device)
     session.commit()
 
-    link = assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
+    link = assign_device(session, person.id, "AA:CC:F3:1A:41:68")
     assert link.person_id == person.id
-    assert link.mac_address == "AA:BB:CC:DD:EE:FF"
+    assert link.mac_address == "AA:CC:F3:1A:41:68"
 
 
 def test_assign_device_not_found(session: Session):
     person = create_person(session, name="Alice")
     with pytest.raises(ValueError, match="does not exist"):
-        assign_device(session, person.id, "00:00:00:00:00:00")
+        assign_device(session, person.id, "00:11:27:3D:53:69")
 
 
 def test_assign_device_already_assigned(session: Session):
     p1 = create_person(session, name="Alice")
     p2 = create_person(session, name="Bob")
-    device = Device(mac_address="AA:BB:CC:DD:EE:FF")
+    device = Device(mac_address="AA:CC:F3:1A:41:68")
     session.add(device)
     session.commit()
 
-    assign_device(session, p1.id, "AA:BB:CC:DD:EE:FF")
+    assign_device(session, p1.id, "AA:CC:F3:1A:41:68")
     with pytest.raises(ValueError, match="already assigned"):
-        assign_device(session, p2.id, "AA:BB:CC:DD:EE:FF")
+        assign_device(session, p2.id, "AA:CC:F3:1A:41:68")
 
 
 def test_assign_device_idempotent(session: Session):
     person = create_person(session, name="Alice")
-    device = Device(mac_address="AA:BB:CC:DD:EE:FF")
+    device = Device(mac_address="AA:CC:F3:1A:41:68")
     session.add(device)
     session.commit()
 
-    link1 = assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
-    link2 = assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
+    link1 = assign_device(session, person.id, "AA:CC:F3:1A:41:68")
+    link2 = assign_device(session, person.id, "AA:CC:F3:1A:41:68")
     assert link1.person_id == link2.person_id
     assert link1.mac_address == link2.mac_address
 
 
 def test_unassign_device(session: Session):
     person = create_person(session, name="Alice")
-    device = Device(mac_address="AA:BB:CC:DD:EE:FF")
+    device = Device(mac_address="AA:CC:F3:1A:41:68")
     session.add(device)
     session.commit()
-    assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
+    assign_device(session, person.id, "AA:CC:F3:1A:41:68")
 
-    assert unassign_device(session, person.id, "AA:BB:CC:DD:EE:FF") is True
+    assert unassign_device(session, person.id, "AA:CC:F3:1A:41:68") is True
 
 
 def test_unassign_device_nonexistent(session: Session):
-    assert unassign_device(session, 99999, "00:00:00:00:00:00") is False
+    assert unassign_device(session, 99999, "00:11:27:3D:53:69") is False
 
 
 def test_get_person_devices(session: Session):
     person = create_person(session, name="Alice")
-    for mac in ("AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"):
+    for mac in ("AA:CC:F3:1A:41:6A", "AA:CC:F3:1A:41:6B"):
         session.add(Device(mac_address=mac))
     session.commit()
 
-    assign_device(session, person.id, "AA:BB:CC:DD:EE:01")
-    assign_device(session, person.id, "AA:BB:CC:DD:EE:02")
+    assign_device(session, person.id, "AA:CC:F3:1A:41:6A")
+    assign_device(session, person.id, "AA:CC:F3:1A:41:6B")
 
     devices = get_person_devices(session, person.id)
     macs = {d.mac_address for d in devices}
-    assert macs == {"AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"}
+    assert macs == {"AA:CC:F3:1A:41:6A", "AA:CC:F3:1A:41:6B"}
 
 
 def test_get_person_for_device(session: Session):
     person = create_person(session, name="Alice")
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:FF"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:68"))
     session.commit()
-    assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
+    assign_device(session, person.id, "AA:CC:F3:1A:41:68")
 
-    found = get_person_for_device(session, "AA:BB:CC:DD:EE:FF")
+    found = get_person_for_device(session, "AA:CC:F3:1A:41:68")
     assert found is not None
     assert found.name == "Alice"
 
 
 def test_get_person_for_device_none(session: Session):
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:FF"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:68"))
     session.commit()
-    assert get_person_for_device(session, "AA:BB:CC:DD:EE:FF") is None
+    assert get_person_for_device(session, "AA:CC:F3:1A:41:68") is None
 
 
 def test_get_present_persons(session: Session):
     person = create_person(session, name="Alice")
     now = datetime.now(UTC).replace(tzinfo=None)
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:FF", last_seen=now))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:68", last_seen=now))
     session.commit()
-    assign_device(session, person.id, "AA:BB:CC:DD:EE:FF")
+    assign_device(session, person.id, "AA:CC:F3:1A:41:68")
 
     result = get_present_persons(session)
     assert len(result) == 1

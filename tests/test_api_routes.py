@@ -16,7 +16,7 @@ def _seed_devices(client) -> None:
     now = datetime.now(UTC)
     session.add(
         Device(
-            mac_address="08:00:27:11:11:11",
+            mac_address="08:11:4E:4E:64:7A",
             classification=DeviceClassification.resident,
             first_seen=now,
             last_seen=now,
@@ -25,7 +25,7 @@ def _seed_devices(client) -> None:
     )
     session.add(
         Device(
-            mac_address="08:00:27:22:22:22",
+            mac_address="08:11:4E:5F:75:8B",
             classification=DeviceClassification.passerby,
             first_seen=now,
             last_seen=now,
@@ -62,16 +62,16 @@ class TestDeviceEndpoints:
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
-        assert data[0]["mac_address"] == "08:00:27:11:11:11"
+        assert data[0]["mac_address"] == "08:11:4E:4E:64:7A"
 
     def test_device_detail_found(self, client):
         _seed_devices(client)
-        resp = client.get("/api/devices/08:00:27:11:11:11")
+        resp = client.get("/api/devices/08:11:4E:4E:64:7A")
         assert resp.status_code == 200
-        assert resp.json()["mac_address"] == "08:00:27:11:11:11"
+        assert resp.json()["mac_address"] == "08:11:4E:4E:64:7A"
 
     def test_device_detail_not_found(self, client):
-        resp = client.get("/api/devices/FF:FF:FF:FF:FF:FF")
+        resp = client.get("/api/devices/FF:10:26:3C:52:68")
         assert resp.status_code == 404
 
     def test_presence_summary(self, client):

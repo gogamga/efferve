@@ -11,16 +11,16 @@ from efferve.registry.models import Device, PresenceEvent, PresenceLog
 
 
 def test_patch_device_name(client: TestClient, session: Session):
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:FF"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:68"))
     session.commit()
 
-    resp = client.patch("/api/devices/AA:BB:CC:DD:EE:FF", json={"display_name": "My Phone"})
+    resp = client.patch("/api/devices/AA:CC:F3:1A:41:68", json={"display_name": "My Phone"})
     assert resp.status_code == 200
     assert resp.json()["display_name"] == "My Phone"
 
 
 def test_patch_device_not_found(client: TestClient):
-    resp = client.patch("/api/devices/00:00:00:00:00:00", json={"display_name": "Ghost"})
+    resp = client.patch("/api/devices/00:11:27:3D:53:69", json={"display_name": "Ghost"})
     assert resp.status_code == 404
 
 
@@ -71,15 +71,15 @@ def test_delete_person_not_found(client: TestClient):
 def test_assign_device_api(client: TestClient, session: Session):
     create_resp = client.post("/api/persons", json={"name": "Alice"})
     person_id = create_resp.json()["id"]
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:FF"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:68"))
     session.commit()
 
     resp = client.post(
         f"/api/persons/{person_id}/devices",
-        json={"mac_address": "AA:BB:CC:DD:EE:FF"},
+        json={"mac_address": "AA:CC:F3:1A:41:68"},
     )
     assert resp.status_code == 200
-    assert resp.json()["mac_address"] == "AA:BB:CC:DD:EE:FF"
+    assert resp.json()["mac_address"] == "AA:CC:F3:1A:41:68"
 
 
 def test_assign_device_invalid_api(client: TestClient):
@@ -88,7 +88,7 @@ def test_assign_device_invalid_api(client: TestClient):
 
     resp = client.post(
         f"/api/persons/{person_id}/devices",
-        json={"mac_address": "00:00:00:00:00:00"},
+        json={"mac_address": "00:11:27:3D:53:69"},
     )
     assert resp.status_code == 400
 
@@ -154,13 +154,13 @@ def test_delete_alert_not_found(client: TestClient):
 
 
 def test_presence_history_api(client: TestClient, session: Session):
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:FF"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:68"))
     session.commit()
 
     now = datetime.now(UTC).replace(tzinfo=None)
     session.add(
         PresenceLog(
-            mac_address="AA:BB:CC:DD:EE:FF",
+            mac_address="AA:CC:F3:1A:41:68",
             event_type=PresenceEvent.arrive,
             timestamp=now,
         )
@@ -171,24 +171,24 @@ def test_presence_history_api(client: TestClient, session: Session):
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) >= 1
-    assert data[0]["mac_address"] == "AA:BB:CC:DD:EE:FF"
+    assert data[0]["mac_address"] == "AA:CC:F3:1A:41:68"
 
 
 def test_presence_history_api_filtered(client: TestClient, session: Session):
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:01"))
-    session.add(Device(mac_address="AA:BB:CC:DD:EE:02"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:6A"))
+    session.add(Device(mac_address="AA:CC:F3:1A:41:6B"))
     session.commit()
 
     now = datetime.now(UTC).replace(tzinfo=None)
     session.add(
-        PresenceLog(mac_address="AA:BB:CC:DD:EE:01", event_type=PresenceEvent.arrive, timestamp=now)
+        PresenceLog(mac_address="AA:CC:F3:1A:41:6A", event_type=PresenceEvent.arrive, timestamp=now)
     )
     session.add(
-        PresenceLog(mac_address="AA:BB:CC:DD:EE:02", event_type=PresenceEvent.arrive, timestamp=now)
+        PresenceLog(mac_address="AA:CC:F3:1A:41:6B", event_type=PresenceEvent.arrive, timestamp=now)
     )
     session.commit()
 
-    resp = client.get("/api/presence/history", params={"mac": "AA:BB:CC:DD:EE:01"})
+    resp = client.get("/api/presence/history", params={"mac": "AA:CC:F3:1A:41:6A"})
     assert resp.status_code == 200
     data = resp.json()
-    assert all(e["mac_address"] == "AA:BB:CC:DD:EE:01" for e in data)
+    assert all(e["mac_address"] == "AA:CC:F3:1A:41:6A" for e in data)
