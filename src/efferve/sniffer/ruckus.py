@@ -103,9 +103,7 @@ class RuckusSniffer(BaseSniffer):
                                     continue
                                 event = BeaconEvent(
                                     mac_address=mac.upper(),
-                                    signal_strength=self._convert_rssi(
-                                        rogue.get("signal")
-                                    ),
+                                    signal_strength=self._convert_rssi(rogue.get("signal")),
                                     ssid=rogue.get("ssid"),
                                     timestamp=now,
                                     source="ruckus_rogue",
@@ -119,11 +117,7 @@ class RuckusSniffer(BaseSniffer):
                         try:
                             events = await session.api.get_client_events()
                             for ev in events:
-                                event_id = (
-                                    f"{ev.get('time')}:"
-                                    f"{ev.get('client')}:"
-                                    f"{ev.get('event')}"
-                                )
+                                event_id = f"{ev.get('time')}:{ev.get('client')}:{ev.get('event')}"
                                 if event_id in self._processed_event_ids:
                                     continue
                                 self._processed_event_ids.append(event_id)
@@ -137,9 +131,7 @@ class RuckusSniffer(BaseSniffer):
                                     continue
 
                                 try:
-                                    ts = datetime.fromtimestamp(
-                                        float(ev["time"]), tz=UTC
-                                    )
+                                    ts = datetime.fromtimestamp(float(ev["time"]), tz=UTC)
                                 except (KeyError, ValueError, TypeError):
                                     ts = now
 

@@ -27,6 +27,7 @@ def _validate_interface_name(name: str) -> str:
         raise ValueError(f"Interface name contains invalid characters: {name!r}")
     return name
 
+
 # Pcap global header is 24 bytes; per-packet record header is 16 bytes.
 _PCAP_GLOBAL_HEADER_LEN = 24
 _PCAP_RECORD_HEADER_LEN = 16
@@ -75,22 +76,17 @@ class GlinetSniffer(BaseSniffer):
     async def _setup_monitor_interface(self, conn) -> bool:  # type: ignore[no-untyped-def]
         """Create monitor mode interface on the remote device."""
         try:
-            result = await conn.run(
-                f"iw dev {self.monitor_interface} info", check=False
-            )
+            result = await conn.run(f"iw dev {self.monitor_interface} info", check=False)
             if result.exit_status == 0:
                 logger.info("Monitor interface %s already exists", self.monitor_interface)
                 return True
 
             logger.info("Creating monitor interface %s", self.monitor_interface)
             await conn.run(
-                f"iw dev {self.wifi_interface} interface add "
-                f"{self.monitor_interface} type monitor",
+                f"iw dev {self.wifi_interface} interface add {self.monitor_interface} type monitor",
                 check=True,
             )
-            await conn.run(
-                f"ip link set {self.monitor_interface} up", check=True
-            )
+            await conn.run(f"ip link set {self.monitor_interface} up", check=True)
             logger.info("Monitor interface %s active", self.monitor_interface)
             return True
         except Exception:
@@ -100,12 +96,8 @@ class GlinetSniffer(BaseSniffer):
     async def _cleanup_monitor_interface(self, conn) -> None:  # type: ignore[no-untyped-def]
         """Remove monitor mode interface."""
         try:
-            await conn.run(
-                f"ip link set {self.monitor_interface} down", check=False
-            )
-            await conn.run(
-                f"iw dev {self.monitor_interface} del", check=False
-            )
+            await conn.run(f"ip link set {self.monitor_interface} down", check=False)
+            await conn.run(f"iw dev {self.monitor_interface} del", check=False)
             logger.info("Monitor interface %s removed", self.monitor_interface)
         except Exception:
             logger.exception("Failed to cleanup monitor interface")
@@ -136,8 +128,7 @@ class GlinetSniffer(BaseSniffer):
                         continue
 
                     tcpdump_cmd = (
-                        f"tcpdump -i {self.monitor_interface} -U -w - "
-                        f"'type mgt subtype probe-req'"
+                        f"tcpdump -i {self.monitor_interface} -U -w - 'type mgt subtype probe-req'"
                     )
 
                     async with conn.create_process(tcpdump_cmd) as process:
@@ -162,9 +153,7 @@ class GlinetSniffer(BaseSniffer):
             except asyncio.CancelledError:
                 raise
             except Exception:
-                logger.exception(
-                    "GL.iNet capture error, reconnecting in %ds", self.poll_interval
-                )
+                logger.exception("GL.iNet capture error, reconnecting in %ds", self.poll_interval)
                 await asyncio.sleep(self.poll_interval)
 
     async def _read_and_process_packet(self, stream) -> None:  # type: ignore[no-untyped-def]
@@ -192,9 +181,7 @@ class GlinetSniffer(BaseSniffer):
                 if raw_ssid:
                     ssid = raw_ssid.decode("utf-8", errors="ignore") or None
 
-            signal = (
-                pkt[RadioTap].dBm_AntSignal if pkt.haslayer(RadioTap) else -100
-            )
+            signal = pkt[RadioTap].dBm_AntSignal if pkt.haslayer(RadioTap) else -100
 
             event = BeaconEvent(
                 mac_address=mac.upper(),

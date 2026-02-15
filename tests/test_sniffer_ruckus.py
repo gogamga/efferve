@@ -31,16 +31,12 @@ def _mock_session(
     session.api.get_active_clients = AsyncMock(return_value=clients or [])
 
     if rogues_error:
-        session.api.get_active_rogues = AsyncMock(
-            side_effect=Exception("rogue API unavailable")
-        )
+        session.api.get_active_rogues = AsyncMock(side_effect=Exception("rogue API unavailable"))
     else:
         session.api.get_active_rogues = AsyncMock(return_value=rogues or [])
 
     if events_error:
-        session.api.get_client_events = AsyncMock(
-            side_effect=Exception("events API unavailable")
-        )
+        session.api.get_client_events = AsyncMock(side_effect=Exception("events API unavailable"))
     else:
         session.api.get_client_events = AsyncMock(return_value=events or [])
 
@@ -256,9 +252,7 @@ class TestGracefulDegradation:
         sniffer.on_event(received.append)
 
         clients = [{"mac": "aa:bb:cc:dd:ee:10", "signal": -50, "ssid": "Home"}]
-        ctx = _mock_session(
-            clients=clients, rogues_error=True, events_error=True
-        )
+        ctx = _mock_session(clients=clients, rogues_error=True, events_error=True)
         await _run_one_cycle(sniffer, ctx, _mock_aioruckus)
 
         client_events = [e for e in received if e.source == "ruckus"]

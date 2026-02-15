@@ -121,12 +121,8 @@ def test_evaluate_both_event(session: Session):
         webhook_url="https://example.com/hook",
         trigger_type="both",
     )
-    arrive = evaluate_presence_change(
-        session, mac_address="AA:BB:CC:DD:EE:FF", event_type="arrive"
-    )
-    depart = evaluate_presence_change(
-        session, mac_address="AA:BB:CC:DD:EE:FF", event_type="depart"
-    )
+    arrive = evaluate_presence_change(session, mac_address="AA:BB:CC:DD:EE:FF", event_type="arrive")
+    depart = evaluate_presence_change(session, mac_address="AA:BB:CC:DD:EE:FF", event_type="depart")
     assert len(arrive) == 1
     assert len(depart) == 1
 
@@ -190,12 +186,8 @@ def test_evaluate_wildcard_rule(session: Session):
         webhook_url="https://example.com/hook",
         trigger_type="arrive",
     )
-    p1 = evaluate_presence_change(
-        session, mac_address="AA:BB:CC:DD:EE:FF", event_type="arrive"
-    )
-    p2 = evaluate_presence_change(
-        session, mac_address="11:22:33:44:55:66", event_type="arrive"
-    )
+    p1 = evaluate_presence_change(session, mac_address="AA:BB:CC:DD:EE:FF", event_type="arrive")
+    p2 = evaluate_presence_change(session, mac_address="11:22:33:44:55:66", event_type="arrive")
     assert len(p1) == 1
     assert len(p2) == 1
 

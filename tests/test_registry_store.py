@@ -168,9 +168,7 @@ class TestPresenceQueries:
         now = datetime.now(UTC)
 
         # Present device
-        session.add(
-            Device(mac_address="08:00:27:11:11:11", last_seen=now, first_seen=now)
-        )
+        session.add(Device(mac_address="08:00:27:11:11:11", last_seen=now, first_seen=now))
         # Stale device — beyond grace period
         session.add(
             Device(

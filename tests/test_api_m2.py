@@ -158,11 +158,13 @@ def test_presence_history_api(client: TestClient, session: Session):
     session.commit()
 
     now = datetime.now(UTC).replace(tzinfo=None)
-    session.add(PresenceLog(
-        mac_address="AA:BB:CC:DD:EE:FF",
-        event_type=PresenceEvent.arrive,
-        timestamp=now,
-    ))
+    session.add(
+        PresenceLog(
+            mac_address="AA:BB:CC:DD:EE:FF",
+            event_type=PresenceEvent.arrive,
+            timestamp=now,
+        )
+    )
     session.commit()
 
     resp = client.get("/api/presence/history")
@@ -178,8 +180,12 @@ def test_presence_history_api_filtered(client: TestClient, session: Session):
     session.commit()
 
     now = datetime.now(UTC).replace(tzinfo=None)
-    session.add(PresenceLog(mac_address="AA:BB:CC:DD:EE:01", event_type=PresenceEvent.arrive, timestamp=now))
-    session.add(PresenceLog(mac_address="AA:BB:CC:DD:EE:02", event_type=PresenceEvent.arrive, timestamp=now))
+    session.add(
+        PresenceLog(mac_address="AA:BB:CC:DD:EE:01", event_type=PresenceEvent.arrive, timestamp=now)
+    )
+    session.add(
+        PresenceLog(mac_address="AA:BB:CC:DD:EE:02", event_type=PresenceEvent.arrive, timestamp=now)
+    )
     session.commit()
 
     resp = client.get("/api/presence/history", params={"mac": "AA:BB:CC:DD:EE:01"})

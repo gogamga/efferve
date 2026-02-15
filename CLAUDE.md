@@ -1,6 +1,7 @@
 # Project: Efferve
 
 ## Quick Context
+
 WiFi presence detection and home automation system. Sniffs WiFi probe requests
 and router client lists to detect personal devices, associate them with people,
 and trigger alerts/automations based on presence.
@@ -12,6 +13,7 @@ and trigger alerts/automations based on presence.
 - Deployment: Docker-first (requires NET_ADMIN + NET_RAW capabilities)
 
 ## Roles
+
 - **Human**: Architecture decisions, requirement definition, approval of plans.
 - **Claude**: Propose approaches, implement approved plans, write tests, flag risks.
 - **Workflow**: Plan → Approve → Execute → Verify → Commit. No code without a plan.
@@ -20,14 +22,14 @@ and trigger alerts/automations based on presence.
 
 All agent roles are implemented as Claude Code skills in `.claude/skills/`.
 
-| Command | Purpose | When to Use |
-|---------|---------|-------------|
-| `/orchestrate [task]` | Plan, delegate, coordinate | Starting any non-trivial task |
-| `/plan [feature]` | Research and generate implementation plan | Architecture decisions, feature scoping |
-| `/implement [subtask]` | Write code in a focused scope | Executing a specific subtask from a plan |
-| `/verify [scope]` | Run tests, lint, quality checks | After implementation to confirm correctness |
-| `/debug [bug]` | Reproduce, root-cause, fix a bug | Encountering crashes or incorrect behavior |
-| `/batch` | Send work to Batch API (built-in) | Non-priority work (docs, tests, reviews) |
+| Command                | Purpose                                   | When to Use                                 |
+| ---------------------- | ----------------------------------------- | ------------------------------------------- |
+| `/orchestrate [task]`  | Plan, delegate, coordinate                | Starting any non-trivial task               |
+| `/plan [feature]`      | Research and generate implementation plan | Architecture decisions, feature scoping     |
+| `/implement [subtask]` | Write code in a focused scope             | Executing a specific subtask from a plan    |
+| `/verify [scope]`      | Run tests, lint, quality checks           | After implementation to confirm correctness |
+| `/debug [bug]`         | Reproduce, root-cause, fix a bug          | Encountering crashes or incorrect behavior  |
+| `/batch`               | Send work to Batch API (built-in)         | Non-priority work (docs, tests, reviews)    |
 
 ## Batch API Routing (MANDATORY)
 
@@ -35,24 +37,24 @@ This project uses the MCP `claude-batch` server (`send_to_batch`) for non-priori
 
 ### Always Batch (never interactive)
 
-| Task Type | Example |
-|-----------|---------|
-| Code review | "Review these 5 files for quality issues" |
-| Test authoring | "Write unit tests for AlertManager" |
-| Documentation | "Update HANDOFF.md with Phase 2 summary" |
-| Refactor analysis | "Identify dead code in src/efferve/" |
-| Debug research | "Analyze this error log and suggest root causes" |
-| Lint/style audit | "Check these files against our style rules" |
+| Task Type         | Example                                          |
+| ----------------- | ------------------------------------------------ |
+| Code review       | "Review these 5 files for quality issues"        |
+| Test authoring    | "Write unit tests for AlertManager"              |
+| Documentation     | "Update HANDOFF.md with Phase 2 summary"         |
+| Refactor analysis | "Identify dead code in src/efferve/"             |
+| Debug research    | "Analyze this error log and suggest root causes" |
+| Lint/style audit  | "Check these files against our style rules"      |
 
 ### Always Interactive (never batch)
 
-| Task Type | Example |
-|-----------|---------|
-| Active implementation | Writing code for the current task |
-| Test execution | Running existing tests to verify changes |
-| Blocking bug fixes | Fix needed before work can continue |
-| Git operations | Commit, push, branch, merge |
-| User Q&A | Answering questions, making decisions |
+| Task Type             | Example                                  |
+| --------------------- | ---------------------------------------- |
+| Active implementation | Writing code for the current task        |
+| Test execution        | Running existing tests to verify changes |
+| Blocking bug fixes    | Fix needed before work can continue      |
+| Git operations        | Commit, push, branch, merge              |
+| User Q&A              | Answering questions, making decisions    |
 
 ### Session Protocol
 
@@ -61,6 +63,7 @@ This project uses the MCP `claude-batch` server (`send_to_batch`) for non-priori
 3. **End**: Batch any remaining non-priority tasks; note pending jobs in HANDOFF.md
 
 ## Build & Test Commands
+
 - `pip install -e ".[dev]"` — Install for development
 - `pytest` — Run all tests
 - `pytest tests/test_foo.py` — Run single test file
@@ -71,6 +74,7 @@ This project uses the MCP `claude-batch` server (`send_to_batch`) for non-priori
 - `uvicorn efferve.main:app --reload` — Dev server
 
 ## Architecture
+
 ```
 src/efferve/
 ├── main.py              # FastAPI app entrypoint, multi-sniffer lifecycle
@@ -97,11 +101,12 @@ src/efferve/
     ├── routes.py        # UI route handlers
     └── templates/       # Jinja2 + HTMX templates
 tests/                   # Mirrors src/ structure (86 tests)
-data/                    # SQLite database + config.json (gitignored)
+data/                    # SQLite database (gitignored); config is .env only
 .claude/skills/          # Agent skill definitions (orchestrate, plan, implement, verify, debug)
 ```
 
 ## Key Patterns & Conventions
+
 - All sniffer backends implement `BaseSniffer` ABC from `sniffer/base.py`.
 - `BeaconEvent` is the universal data structure for any WiFi observation.
 - Database models use SQLModel (Pydantic + SQLAlchemy hybrid).
@@ -111,18 +116,22 @@ data/                    # SQLite database + config.json (gitignored)
 - Type hints everywhere. mypy strict mode.
 
 ## Household Filtering Logic (Core Feature)
+
 Devices are classified by signal strength patterns and visit frequency:
+
 - **Resident**: Seen consistently over multiple days, strong signal.
 - **Frequent visitor**: Seen regularly but not always present.
 - **Passerby**: Seen briefly, weak signal, no repeat pattern.
-Only Resident and Frequent visitor devices surface in the UI by default.
+  Only Resident and Frequent visitor devices surface in the UI by default.
 
 ## Database Design Principle
+
 SQLite now, Postgres later. Use SQLModel throughout. Avoid raw SQL.
 Keep the engine creation in `database.py` so swapping the connection
 string is the only change needed for Postgres migration.
 
 ## Gotchas & Warnings
+
 - Monitor mode sniffing requires root/NET_ADMIN — won't work in normal dev.
   Use router API mode or mock data for local development.
 - MAC address randomization (iOS/Android) means probe requests may use
@@ -132,11 +141,13 @@ string is the only change needed for Postgres migration.
   for monitor mode to work.
 
 ## Verification
+
 - Before marking any task complete, run: `pytest && ruff check src/`
 - For UI changes, visually verify in the browser at http://localhost:8000
 - For sniffer changes, verify with mock beacon events (don't require live WiFi)
 
 ## Don'ts (Project-Specific)
+
 - Don't add a JS build system. HTMX + Jinja2 is the UI strategy.
 - Don't use async SQLAlchemy unless we hit a concrete performance wall.
 - Don't hardcode WiFi interface names or router credentials anywhere.

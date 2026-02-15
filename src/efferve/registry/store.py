@@ -189,9 +189,7 @@ def get_presence_history(
     return list(session.exec(stmt).all())
 
 
-def detect_presence_changes(
-    session: Session, grace_seconds: int = 180
-) -> list[tuple[str, str]]:
+def detect_presence_changes(session: Session, grace_seconds: int = 180) -> list[tuple[str, str]]:
     """Compare currently present devices against previously known present set.
 
     Return list of (mac, "arrive"|"depart") tuples.

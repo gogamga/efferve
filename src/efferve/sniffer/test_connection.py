@@ -120,13 +120,9 @@ async def test_glinet(host: str, username: str, password: str) -> ConnectionResu
                     success=False, message="Connected but no WiFi interfaces found"
                 )
             logger.info("GL.iNet connection test successful")
-            return ConnectionResult(
-                success=True, message="Connected — SSH access verified"
-            )
+            return ConnectionResult(success=True, message="Connected — SSH access verified")
     except ImportError:
-        return ConnectionResult(
-            success=False, message="asyncssh library not installed"
-        )
+        return ConnectionResult(success=False, message="asyncssh library not installed")
     except Exception as e:
         logger.warning(f"GL.iNet connection test failed: {e}")
         return ConnectionResult(success=False, message=str(e))

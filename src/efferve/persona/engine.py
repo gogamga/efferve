@@ -121,17 +121,13 @@ def get_person_devices(session: Session, person_id: int) -> list[Device]:
 def get_person_for_device(session: Session, mac_address: str) -> Person | None:
     """Reverse lookup: which person owns this device?"""
     mac = normalize_mac(mac_address)
-    link = session.exec(
-        select(PersonDevice).where(PersonDevice.mac_address == mac)
-    ).first()
+    link = session.exec(select(PersonDevice).where(PersonDevice.mac_address == mac)).first()
     if link is None:
         return None
     return session.get(Person, link.person_id)
 
 
-def get_present_persons(
-    session: Session, grace_seconds: int = 180
-) -> list[dict[str, Any]]:
+def get_present_persons(session: Session, grace_seconds: int = 180) -> list[dict[str, Any]]:
     """Return list of dicts with person presence information.
 
     Each dict contains:
@@ -150,15 +146,15 @@ def get_present_persons(
         if person.id is None:
             continue
         person_devices = get_person_devices(session, person.id)
-        present_person_devices = [
-            d for d in person_devices if d.mac_address in present_macs
-        ]
+        present_person_devices = [d for d in person_devices if d.mac_address in present_macs]
         is_present = len(present_person_devices) > 0
 
-        result.append({
-            "person": person,
-            "present_devices": present_person_devices,
-            "is_present": is_present,
-        })
+        result.append(
+            {
+                "person": person,
+                "present_devices": present_person_devices,
+                "is_present": is_present,
+            }
+        )
 
     return result

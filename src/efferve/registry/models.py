@@ -35,6 +35,7 @@ class PresenceEvent(enum.StrEnum):
 
 class PresenceLog(SQLModel, table=True):
     """Time-series log of device presence changes."""
+
     id: int | None = Field(default=None, primary_key=True)
     mac_address: str = Field(index=True, foreign_key="device.mac_address")
     event_type: PresenceEvent

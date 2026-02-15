@@ -1,6 +1,6 @@
 """Tests for the setup wizard UI routes."""
 
-import json
+import re
 from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -12,14 +12,26 @@ import efferve.config as config_module
 from efferve.sniffer.test_connection import ConnectionResult
 
 
+def _read_env_as_dict(env_path: Path) -> dict[str, str]:
+    """Parse .env file into key -> value dict (EFFERVE_* only, simple KEY=VALUE)."""
+    result: dict[str, str] = {}
+    if not env_path.exists():
+        return result
+    for line in env_path.read_text().splitlines():
+        m = re.match(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line.strip())
+        if m and m.group(1).startswith("EFFERVE_"):
+            result[m.group(1)] = m.group(2).strip().strip('"')
+    return result
+
+
 @pytest.fixture
-def config_file(tmp_path: Path) -> Generator[Path, None, None]:
-    """Use a temporary config file instead of the real one."""
-    config_path = tmp_path / "config.json"
-    original = config_module._CONFIG_FILE
-    config_module._CONFIG_FILE = config_path
-    yield config_path
-    config_module._CONFIG_FILE = original
+def env_file(tmp_path: Path) -> Generator[Path, None, None]:
+    """Use a temporary .env file instead of the real one."""
+    env_path = tmp_path / ".env"
+    original = config_module._ENV_FILE
+    config_module._ENV_FILE = env_path
+    yield env_path
+    config_module._ENV_FILE = original
 
 
 class TestSetupPage:
@@ -30,17 +42,15 @@ class TestSetupPage:
         assert "OPNsense" in resp.text
         assert "Poll Interval" in resp.text
 
-    def test_setup_page_shows_existing_config(
-        self, client: TestClient, config_file: Path
-    ) -> None:
-        config_file.write_text(json.dumps({"ruckus_host": "10.0.0.1"}))
+    def test_setup_page_shows_existing_config(self, client: TestClient, env_file: Path) -> None:
+        env_file.write_text("EFFERVE_RUCKUS_HOST=10.0.0.1\n")
         resp = client.get("/setup")
         assert resp.status_code == 200
         assert "10.0.0.1" in resp.text
 
 
 class TestSaveConfig:
-    def test_save_writes_json(self, client: TestClient, config_file: Path) -> None:
+    def test_save_writes_env(self, client: TestClient, env_file: Path) -> None:
         with patch("efferve.main.restart_sniffer", new_callable=AsyncMock):
             resp = client.post(
                 "/setup/save",
@@ -62,19 +72,17 @@ class TestSaveConfig:
             )
         assert resp.status_code == 200
         assert resp.headers.get("HX-Redirect") == "/"
-        saved = json.loads(config_file.read_text())
-        assert saved["ruckus_host"] == "192.168.1.100"
-        assert saved["sniffer_modes"] == ["ruckus"]
-        assert saved["poll_interval"] == 15
+        saved = _read_env_as_dict(env_file)
+        assert saved.get("EFFERVE_RUCKUS_HOST") == "192.168.1.100"
+        assert saved.get("EFFERVE_SNIFFER_MODES") == "ruckus"
+        assert saved.get("EFFERVE_POLL_INTERVAL") == "15"
 
-    def test_save_partial_merge(self, client: TestClient, config_file: Path) -> None:
+    def test_save_partial_merge(self, client: TestClient, env_file: Path) -> None:
         """Save Ruckus first, then OPNsense — both should be preserved."""
-        config_file.write_text(
-            json.dumps({
-                "ruckus_host": "10.0.0.1",
-                "ruckus_username": "admin",
-                "ruckus_password": "pass",
-            })
+        env_file.write_text(
+            "EFFERVE_RUCKUS_HOST=10.0.0.1\n"
+            "EFFERVE_RUCKUS_USERNAME=admin\n"
+            "EFFERVE_RUCKUS_PASSWORD=pass\n"
         )
         with patch("efferve.main.restart_sniffer", new_callable=AsyncMock):
             client.post(
@@ -95,13 +103,11 @@ class TestSaveConfig:
                     "presence_grace_period": "180",
                 },
             )
-        saved = json.loads(config_file.read_text())
-        # OPNsense values saved
-        assert saved["opnsense_url"] == "https://fw.local"
-        # sniffer_modes should contain only opnsense (only opnsense has creds now)
-        assert saved["sniffer_modes"] == ["opnsense"]
+        saved = _read_env_as_dict(env_file)
+        assert saved.get("EFFERVE_OPNSENSE_URL") == "https://fw.local"
+        assert saved.get("EFFERVE_SNIFFER_MODES") == "opnsense"
 
-    def test_save_restarts_sniffer(self, client: TestClient, config_file: Path) -> None:
+    def test_save_restarts_sniffer(self, client: TestClient, env_file: Path) -> None:
         with patch("efferve.main.restart_sniffer", new_callable=AsyncMock) as mock_restart:
             client.post(
                 "/setup/save",

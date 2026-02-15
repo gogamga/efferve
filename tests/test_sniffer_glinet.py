@@ -157,9 +157,7 @@ class TestPacketParsing:
 
         record = _make_pcap_record(64)
         stream = AsyncMock()
-        stream.readexactly = AsyncMock(
-            side_effect=[record[:16], record[16:]]
-        )
+        stream.readexactly = AsyncMock(side_effect=[record[:16], record[16:]])
 
         await sniffer._read_and_process_packet(stream)
         assert len(received) == 0

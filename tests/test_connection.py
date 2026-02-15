@@ -56,9 +56,7 @@ class TestOPNsenseConnection:
         mock_client.__aenter__.return_value = mock_client
         mock_client.__aexit__.return_value = None
 
-        with patch(
-            "efferve.sniffer.test_connection.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("efferve.sniffer.test_connection.httpx.AsyncClient", return_value=mock_client):
             result = await tc.test_opnsense("https://192.168.1.1", "key", "secret")
 
         assert result.success is True
@@ -72,9 +70,7 @@ class TestOPNsenseConnection:
         mock_client.__aenter__.return_value = mock_client
         mock_client.__aexit__.return_value = None
 
-        with patch(
-            "efferve.sniffer.test_connection.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("efferve.sniffer.test_connection.httpx.AsyncClient", return_value=mock_client):
             result = await tc.test_opnsense("https://192.168.1.1", "key", "secret")
 
         assert result.success is False
@@ -110,9 +106,7 @@ class TestGlinetConnection:
 
     @pytest.mark.asyncio
     async def test_failure(self, _mock_asyncssh) -> None:
-        _mock_asyncssh.connect = MagicMock(
-            side_effect=ConnectionError("Connection refused")
-        )
+        _mock_asyncssh.connect = MagicMock(side_effect=ConnectionError("Connection refused"))
 
         result = await tc.test_glinet("192.168.1.47", "root", "wrong")
         assert result.success is False
@@ -121,9 +115,7 @@ class TestGlinetConnection:
     @pytest.mark.asyncio
     async def test_no_wifi_interfaces(self, _mock_asyncssh) -> None:
         conn = AsyncMock()
-        conn.run = AsyncMock(
-            return_value=Mock(stdout="", exit_status=0)
-        )
+        conn.run = AsyncMock(return_value=Mock(stdout="", exit_status=0))
         conn.__aenter__ = AsyncMock(return_value=conn)
         conn.__aexit__ = AsyncMock(return_value=None)
 
