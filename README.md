@@ -63,6 +63,12 @@ uv run pytest
 uv run ruff check src tests
 ```
 
+Optional local secret scan:
+
+```bash
+gitleaks git --redact --verbose --exit-code 1
+```
+
 ## Architecture and Workflow Documentation
 
 - Diagram index: `docs/diagrams/README.md`
