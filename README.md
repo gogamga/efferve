@@ -79,9 +79,24 @@ uv run ruff check src tests
 - Security policy: `SECURITY.md`
 - Contribution guide: `CONTRIBUTING.md`
 
-## Roadmap (Near-Term)
+## Roadmap
 
-- Improve persona confidence/association logic.
-- Expand alert delivery capabilities.
+### Near-Term
+
+- Improve persona confidence/association logic (multi-device identity scoring).
+- Expand alert delivery capabilities and rule expressiveness.
+- Add richer setup validation and diagnostics for sniffer backends.
 - Harden deployment docs and operational runbooks.
-- Prepare optional Postgres runtime path.
+
+### Medium-Term
+
+- Add optional Postgres runtime path and migration guide.
+- Add retention controls for presence history.
+- Add stronger observability (structured logs + health/readiness checks).
+- Introduce end-to-end integration test coverage for core presence workflows.
+
+### Operational / Release Readiness
+
+- Add semantic versioning + changelog/release notes process.
+- Add CI gates for tests/lint/type checks on PRs.
+- Add backup/restore guidance for runtime data.
