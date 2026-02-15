@@ -74,6 +74,24 @@ uv run ruff check src tests
   - `docs/diagrams/efferve-setup-workflow.excalidraw`
   - `docs/diagrams/efferve-classification.excalidraw`
 
+## UI Screenshots
+
+### Dashboard
+
+![Efferve Dashboard](docs/screenshots/ui-dashboard.png)
+
+### Setup
+
+![Efferve Setup](docs/screenshots/ui-setup.png)
+
+### People
+
+![Efferve People](docs/screenshots/ui-people.png)
+
+### Alerts
+
+![Efferve Alerts](docs/screenshots/ui-alerts.png)
+
 ## Repository Standards
 
 - Security policy: `SECURITY.md`
