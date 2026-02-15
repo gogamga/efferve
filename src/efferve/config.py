@@ -133,6 +133,10 @@ class Settings(BaseSettings):
     # Alerts
     webhook_url: str | None = None
 
+    # Authentication (optional — omit to disable)
+    auth_username: str = "admin"
+    auth_password: str | None = None
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000

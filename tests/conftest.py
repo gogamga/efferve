@@ -46,8 +46,15 @@ def client(engine) -> Generator[TestClient, None, None]:
         with Session(engine) as s:
             yield s
 
+    # Import settings and patch auth_password to None to disable auth in tests
+    from efferve.config import settings
+    from unittest.mock import patch
+
     app.dependency_overrides[get_session] = _override_session
-    with TestClient(app) as c:
-        yield c
+
+    with patch.object(settings, "auth_password", None):
+        with TestClient(app) as c:
+            yield c
+
     app.dependency_overrides.clear()
     db_module.engine = original_engine

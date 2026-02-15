@@ -1,12 +1,15 @@
 """Efferve application entrypoint."""
 
+import base64
 import logging
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from sqlmodel import Session
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from efferve.alerts.manager import dispatch_webhooks, evaluate_presence_change
 from efferve.config import Settings, load_config, settings
@@ -179,7 +182,62 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class BasicAuthMiddleware(BaseHTTPMiddleware):
+    """HTTP Basic Authentication middleware.
+
+    Protects all routes except /health. Requires valid username/password
+    provided via Authorization header.
+    """
+
+    def __init__(self, app, username: str, password: str):
+        super().__init__(app)
+        self.username = username
+        self.password = password
+
+    async def dispatch(self, request, call_next):
+        # Exempt health check endpoint
+        if request.url.path == "/health":
+            return await call_next(request)
+
+        # Check Authorization header
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Basic "):
+            return self._unauthorized_response()
+
+        # Decode credentials
+        try:
+            encoded = auth_header[6:]  # Strip "Basic "
+            decoded = base64.b64decode(encoded).decode("utf-8")
+            provided_username, provided_password = decoded.split(":", 1)
+        except Exception:
+            return self._unauthorized_response()
+
+        # Timing-safe comparison
+        username_match = secrets.compare_digest(provided_username, self.username)
+        password_match = secrets.compare_digest(provided_password, self.password)
+
+        if not (username_match and password_match):
+            return self._unauthorized_response()
+
+        return await call_next(request)
+
+    def _unauthorized_response(self) -> Response:
+        return Response(
+            content="Unauthorized",
+            status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="Efferve"'},
+        )
+
+
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Conditionally add BasicAuth if password is configured
+if settings.auth_password:
+    app.add_middleware(
+        BasicAuthMiddleware, username=settings.auth_username, password=settings.auth_password
+    )
+    logger.info("HTTP Basic Auth enabled")
+
 
 # Register routers
 from efferve.api.routes import router as api_router  # noqa: E402
