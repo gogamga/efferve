@@ -2,174 +2,86 @@
 
 WiFi presence detection and home automation system.
 
-Efferve ingests device observations from multiple WiFi/network backends, classifies devices by household relevance, associates devices to people, and triggers webhook alerts on presence changes.
+## About
 
-## What It Does
+Efferve is a FastAPI service that ingests local network/WiFi observations, identifies household-relevant devices, associates devices with people, and triggers webhook automations on presence changes.
 
-- Detects devices from:
-  - Ruckus Unleashed API
-  - OPNsense DHCP lease API
-  - GL.iNet remote monitor (SSH + tcpdump)
-  - Monitor mode via scapy
-  - Mock source for development/testing
-- Builds a device registry with presence history.
-- Classifies devices as resident, frequent visitor, or passerby.
-- Lets you assign devices to people.
-- Triggers webhook alerts on arrive/leave events with SSRF-safe URL validation.
+The system is built for home-lab and self-hosted environments where router/AP telemetry and monitor-mode packet observations can be combined into a single presence pipeline.
 
-## Current Status
+## Status
 
-Implemented and working:
+**Release maturity:** active development, functionally usable.
 
-- Multi-sniffer runtime and lifecycle management.
-- Device registry and presence history.
-- Persona management (people + device assignment).
-- Alerts engine (rules + webhook dispatch).
-- Setup wizard for backend connection testing and config save.
-- Security hardening for webhook validation and request handling.
-- Config/secrets moved to `.env`-only flow (`EFFERVE_*`).
+Implemented today:
 
-## Stack
+- Multi-sniffer runtime with pluggable backends (Ruckus, OPNsense, GL.iNet, monitor mode, mock).
+- Device registry with presence history and classification.
+- Person-device association (persona layer).
+- Alert rule evaluation + webhook dispatch.
+- Setup wizard for connection tests and config save.
+- Security hardening for webhook URL validation and request handling.
+- `.env`-only configuration flow (`EFFERVE_*`).
+
+## Core Capabilities
+
+- Device observation ingestion from API polling and packet capture sources.
+- Unified `BeaconEvent` processing pipeline.
+- Household filtering (`resident`, `frequent visitor`, `passerby`).
+- Presence-based automations via outbound webhooks.
+- JSON API and server-rendered UI (Jinja2 + HTMX).
+
+## Tech Stack
 
 - Python 3.11+
 - FastAPI
-- SQLModel + SQLite (designed for Postgres migration later)
-- Jinja2 + HTMX UI (no JS build system)
+- SQLModel + SQLite (Postgres-ready design)
+- Jinja2 + HTMX (no JS build system)
 - Docker-first deployment
 
 ## Quick Start
 
 ```bash
 cp .env.example .env
-# edit .env with your settings
+# edit .env with your environment/router settings
 uv run pytest
 uv run uvicorn efferve.main:app --reload
 ```
 
-Open: `http://localhost:8000`
+Open `http://localhost:8000`.
 
-## Architecture & Workflow Charts
+## Configuration and Secrets
 
-Editable source diagrams:
+- All runtime config is via environment variables (`EFFERVE_*`).
+- Use `.env.example` as the template.
+- Keep secrets in `.env` only; do not commit secret material.
+- Security guidance: `SECURITY.md`.
 
-- `docs/diagrams/efferve-architecture.excalidraw`
-- `docs/diagrams/efferve-beacon-to-alert.excalidraw`
-- `docs/diagrams/efferve-use-cases.excalidraw`
-- `docs/diagrams/efferve-setup-workflow.excalidraw`
-- `docs/diagrams/efferve-classification.excalidraw`
+## Quality Gates
 
-GitHub-friendly ASCII charts: `docs/diagrams/ASCII_DIAGRAMS.md`
-
-### 1) System Architecture
-
-```text
-+------------------------+      +----------------------------------+      +----------------------------+
-|      DATA SOURCES      | ---> |             CORE APP             | ---> |          OUTPUTS           |
-|------------------------|      |----------------------------------|      |----------------------------|
-| - Ruckus (API polling) |      | - Sniffers -> BeaconEvent        |      | - SQLite (devices/persons/ |
-| - OPNsense (DHCP API)  |      | - Registry (devices, class, log) |      |   rules/presence)          |
-| - GL.iNet (SSH/tcpdump)|      | - Persona (person <-> devices)   |      | - UI (Jinja2 + HTMX)       |
-| - Monitor mode (scapy) |      | - Alerts (rules + webhooks)      |      | - REST API (/api/*)        |
-| - Mock                 |      |                                  |      | - Webhooks (HTTP POST)     |
-+------------------------+      +----------------------------------+      +----------------------------+
+```bash
+uv run pytest
+uv run ruff check src tests
 ```
 
-### 2) Data Flow: Beacon -> Alert
+## Architecture and Workflow Documentation
 
-```text
-[1] Sniffer observes device
-            |
-            v
-[2] Emit BeaconEvent (MAC, RSSI, SSID, hostname, vendor...)
-            |
-            v
-[3] main._handle_beacon_event
-    - upsert_device()
-    - reclassify_device()
-            |
-            v
-[4] detect_presence_changes(grace_period)
-    -> [(mac, arrive|leave), ...]
-            |
-            v
-[5] evaluate_presence_change()
-    - match rules by person/device
-    - match trigger type (arrive|leave|both)
-            |
-            v
-[6] dispatch_webhooks()
-    - HTTP POST payloads (SSRF-safe URL validation)
-```
+- Diagram index: `docs/diagrams/README.md`
+- GitHub-friendly ASCII diagrams: `docs/diagrams/ASCII_DIAGRAMS.md`
+- Editable Excalidraw sources:
+  - `docs/diagrams/efferve-architecture.excalidraw`
+  - `docs/diagrams/efferve-beacon-to-alert.excalidraw`
+  - `docs/diagrams/efferve-use-cases.excalidraw`
+  - `docs/diagrams/efferve-setup-workflow.excalidraw`
+  - `docs/diagrams/efferve-classification.excalidraw`
 
-### 3) Use Cases / Actors
+## Repository Standards
 
-```text
-Actors:
-  (A) User/Admin
-  (B) External System (webhook consumer)
-  (C) Sniffer Backends (Ruckus / OPNsense / GL.iNet / Monitor / Mock)
+- Security policy: `SECURITY.md`
+- Contribution guide: `CONTRIBUTING.md`
 
-                     +-------------------------------------+
- (A) User/Admin ---->| Configure sniffers (setup wizard)  |
-                     +-------------------------------------+
- (A) User/Admin ---->| View devices and presence          |
-                     +-------------------------------------+
- (A) User/Admin ---->| Manage people + assign devices     |
-                     +-------------------------------------+
- (A) User/Admin ---->| Define alert rules                 |
-                     +-------------------------------------+
- (A) User/Admin ---->| Toggle/delete alert rules          |
-                     +-------------------------------------+
+## Roadmap (Near-Term)
 
- (C) Sniffer --------> Report device observations (BeaconEvent)
- (B) External <------- Receive webhook on presence change
-```
-
-### 4) Setup + Configuration Workflow
-
-```text
-CONFIG SOURCES
-  .env (EFFERVE_*)
-  process env (overrides .env)
-        |
-        v
-+-------------------------------+
-| Setup Wizard (UI)            |
-|------------------------------ |
-| - Fill Ruckus/OPNsense/GL.iNet|
-| - Test -> test_connection()   |
-| - Save -> save_config(.env)   |
-| - Restart -> restart_sniffer()|
-+-------------------------------+
-        |
-        v
-APP STARTUP / RESTART PATH
-  load_config()
-      -> get_active_sniffer_modes()
-      -> _create_sniffer(mode,...)
-      -> lifespan starts sniffers
-```
-
-### 5) Device Classification
-
-```text
-BeaconEvent Stream (RSSI + sightings over time)
-                    |
-                    v
-          +-------------------------+
-          | Classification Engine   |
-          |-------------------------|
-          | - Resident              |
-          | - Frequent visitor      |
-          | - Passerby              |
-          +-------------------------+
-                    |
-                    v
-          +-------------------------+
-          | UI Default Visibility   |
-          |-------------------------|
-          | Show: Resident          |
-          | Show: Frequent visitor  |
-          | Hide/optional: Passerby |
-          +-------------------------+
-```
+- Improve persona confidence/association logic.
+- Expand alert delivery capabilities.
+- Harden deployment docs and operational runbooks.
+- Prepare optional Postgres runtime path.
